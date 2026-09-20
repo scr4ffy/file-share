@@ -1,0 +1,1000 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Передача файлов</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232f6df6'/%3E%3Cpath d='M9 17l7-7 7 7M16 10v13' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #f4f6fb; --card: #ffffff; --text: #1a2233; --muted: #667085;
+    --line: #e2e6ef; --accent: #2f6df6; --accent-text: #ffffff; --accent-soft: #e8efff;
+    --ok: #12a150; --warn: #d98a00; --err: #d92d20; --bar: #e6eaf3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f141d; --card: #171e2b; --text: #e8ecf4; --muted: #93a0b8;
+      --line: #2a3446; --accent: #5b8cff; --accent-text: #0b1220; --accent-soft: #1d2a47;
+      --ok: #3ccf7e; --warn: #f0b429; --err: #ff6b5e; --bar: #263248;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 720px; margin: 0 auto; padding: 28px 16px 64px; }
+  h1 { margin: 0 0 4px; font-size: 26px; letter-spacing: -0.01em; }
+  .sub { margin: 0 0 22px; color: var(--muted); }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+    padding: 18px; margin-bottom: 14px;
+  }
+  .label { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 6px; }
+  .me-grid { display: grid; grid-template-columns: 1fr auto; gap: 18px; align-items: start; }
+  .code { font: 700 34px/1.1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .12em; margin: 2px 0 12px; }
+  .row-inline { display: flex; gap: 8px; }
+  input[type="text"] {
+    flex: 1; min-width: 0; padding: 10px 12px; font: inherit; color: var(--text);
+    background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+  }
+  input[type="text"]:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  button {
+    font: inherit; font-weight: 600; cursor: pointer; padding: 10px 14px; border-radius: 10px;
+    border: 1px solid transparent; background: var(--accent); color: var(--accent-text);
+  }
+  button:hover { filter: brightness(1.06); }
+  button:disabled { opacity: .5; cursor: default; }
+  button.ghost { background: transparent; color: var(--text); border-color: var(--line); }
+  button.small { padding: 5px 10px; font-size: 13px; border-radius: 8px; }
+  .hint { color: var(--muted); font-size: 14px; margin: 12px 0 0; }
+  #qr { width: 132px; background: #fff; padding: 6px; border-radius: 10px; border: 1px solid var(--line); }
+  #qr svg { display: block; width: 100%; height: auto; }
+  .status { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); margin-top: 12px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--warn); }
+  .dot.ok { background: var(--ok); } .dot.err { background: var(--err); }
+  #msg { margin: 0 0 14px; padding: 12px 14px; border-radius: 12px; background: var(--accent-soft); font-size: 14px; }
+  #msg.err { background: color-mix(in srgb, var(--err) 14%, var(--card)); }
+  .peer-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .peer-title { font-weight: 600; }
+  .peer-title b { font-family: ui-monospace, Menlo, Consolas, monospace; letter-spacing: .08em; }
+  .badge { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+  .badge.ok { background: color-mix(in srgb, var(--ok) 16%, var(--card)); color: var(--ok); }
+  .badge.err { background: color-mix(in srgb, var(--err) 16%, var(--card)); color: var(--err); }
+  .drop {
+    border: 2px dashed var(--line); border-radius: 14px; padding: 26px 14px; text-align: center; cursor: pointer;
+    transition: background .15s, border-color .15s;
+  }
+  .drop:hover, .drop.over { border-color: var(--accent); background: var(--accent-soft); }
+  .drop.disabled { opacity: .5; pointer-events: none; }
+  .drop-big { font-weight: 600; }
+  .drop-small { color: var(--muted); font-size: 14px; }
+  .notice { margin-top: 10px; font-size: 14px; color: var(--muted); }
+  .list { margin-top: 12px; display: grid; gap: 10px; }
+  .row { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+  .row-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .name { font-weight: 600; word-break: break-all; }
+  .name small { color: var(--muted); font-weight: 500; margin-right: 6px; }
+  .btns { display: flex; gap: 6px; flex-shrink: 0; }
+  .bar { height: 6px; background: var(--bar); border-radius: 99px; margin: 8px 0 6px; overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s linear; }
+  .row.done .bar i { background: var(--ok); }
+  .row.bad .bar i { background: var(--err); }
+  .meta { font-size: 13px; color: var(--muted); }
+  .meta.warn { color: var(--warn); }
+  .foot { margin-top: 26px; color: var(--muted); font-size: 13px; }
+  .foot p { margin: 6px 0; }
+  @media (max-width: 520px) {
+    .me-grid { grid-template-columns: 1fr; }
+    #qr { justify-self: start; }
+    .code { font-size: 30px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Передача файлов</h1>
+  <p class="sub">Файлы идут напрямую с устройства на устройство. Через сервер они не проходят, размер не ограничен.</p>
+
+  <div id="msg" hidden></div>
+
+  <section class="card" id="meCard">
+    <div class="me-grid">
+      <div>
+        <div class="label">Ваш код</div>
+        <div class="code" id="myCode">······</div>
+        <div class="row-inline">
+          <input type="text" id="myLink" readonly aria-label="Ваша ссылка">
+          <button id="copyBtn">Копировать</button>
+        </div>
+        <p class="hint">Отправьте ссылку другу и не закрывайте эту вкладку. Когда он её откроет, вы сможете обмениваться файлами в обе стороны.</p>
+        <div class="status"><span class="dot" id="dot"></span><span id="statusText">Подключаюсь к серверу…</span></div>
+      </div>
+      <div id="qr" hidden></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="label">Подключиться к другу</div>
+    <form class="row-inline" id="joinForm" autocomplete="off">
+      <input type="text" id="joinInput" placeholder="Код или ссылка друга" aria-label="Код друга" autocapitalize="characters" spellcheck="false">
+      <button type="submit">Подключиться</button>
+    </form>
+  </section>
+
+  <div id="peers"></div>
+
+  <div class="foot">
+    <p id="modeInfo"></p>
+    <p>Пока идёт передача, вкладка должна оставаться открытой у обоих участников. Сервер помогает только найти друг друга.</p>
+  </div>
+</main>
+
+<script src="peerjs.min.js"></script>
+<script src="qrcode.js"></script>
+<script>
+'use strict';
+
+/* ================= Настройки ================= */
+
+// STUN-серверы помогают устройствам найти друг друга через NAT.
+// Если у кого-то соединение не устанавливается (мобильные сети, строгие роутеры),
+// добавьте сюда TURN-сервер (см. README):
+//   { urls: 'turn:turn.example.com:3478', username: 'user', credential: 'pass' }
+const ICE_SERVERS = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:stun.cloudflare.com:3478' },
+];
+
+const CHUNK = 64 * 1024;             // размер одного пакета
+const HIGH_WATER = 8 * 1024 * 1024;  // не держим в буфере канала больше
+const LOW_WATER = 2 * 1024 * 1024;
+const WINDOW = 32 * 1024 * 1024;     // сколько байт можно отправить вперёд без подтверждения
+const ACK_EVERY = 2 * 1024 * 1024;   // как часто получатель подтверждает запись на диск
+const ID_PREFIX = 'sfx-';
+const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const CONNECT_TIMEOUT = 25000;
+
+/* ================= Утилиты ================= */
+
+const $ = (s, r = document) => r.querySelector(s);
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+function uid() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  return Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('');
+}
+function fmtBytes(n) {
+  const u = ['Б', 'КБ', 'МБ', 'ГБ', 'ТБ'];
+  let i = 0;
+  while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+  return (i === 0 || n >= 100 ? Math.round(n) : n.toFixed(n >= 10 ? 1 : 2)) + ' ' + u[i];
+}
+function fmtTime(s) {
+  s = Math.max(0, Math.round(s));
+  if (s < 60) return s + ' с';
+  if (s < 3600) return Math.floor(s / 60) + ' мин ' + String(s % 60).padStart(2, '0') + ' с';
+  return Math.floor(s / 3600) + ' ч ' + String(Math.floor((s % 3600) / 60)).padStart(2, '0') + ' мин';
+}
+function cleanName(n) {
+  n = String(n || '').replace(/[\u0000-\u001f\u007f\\/:*?"<>|]/g, '_').replace(/^[.\s]+/, '').trim().slice(0, 180);
+  return n || 'файл';
+}
+function withSuffix(name, i) {
+  const dot = name.lastIndexOf('.');
+  return dot > 0 ? `${name.slice(0, dot)} (${i})${name.slice(dot)}` : `${name} (${i})`;
+}
+async function uniqueHandle(dir, name) {
+  for (let i = 0; i < 200; i++) {
+    const n = i ? withSuffix(name, i) : name;
+    try { await dir.getFileHandle(n); }
+    catch (e) {
+      if (e.name === 'NotFoundError') return dir.getFileHandle(n, { create: true });
+      throw e;
+    }
+  }
+  throw new Error('Не удалось подобрать имя файла');
+}
+function genCode() {
+  const a = crypto.getRandomValues(new Uint8Array(6));
+  return Array.from(a, x => ALPHABET[x % ALPHABET.length]).join('');
+}
+function loadCode() {
+  try {
+    const c = localStorage.getItem('sf_code');
+    if (c && /^[A-Z2-9]{6}$/.test(c)) return c;
+  } catch (_) {}
+  return genCode();
+}
+function saveCode(c) { try { localStorage.setItem('sf_code', c); } catch (_) {} }
+function normCode(s) {
+  s = String(s || '');
+  if (s.includes('#')) s = s.slice(s.lastIndexOf('#') + 1);
+  s = s.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  return /^[A-Z2-9]{6}$/.test(s) ? s : '';
+}
+
+/* ================= Сообщения и статус ================= */
+
+function showMsg(text, isErr) {
+  const m = $('#msg');
+  m.textContent = text;
+  m.className = isErr ? 'err' : '';
+  m.hidden = !text;
+}
+function setStatus(kind, text) {
+  $('#dot').className = 'dot ' + (kind || '');
+  $('#statusText').textContent = text;
+}
+
+/* ================= Способы сохранения файла ================= */
+
+const hasFSA = typeof window.showSaveFilePicker === 'function';
+let swOK = false;
+
+if (navigator.serviceWorker) {
+  navigator.serviceWorker.register('sw.js')
+    .then(() => navigator.serviceWorker.ready)
+    .then(() => { swOK = true; renderModeInfo(); })
+    .catch(() => { renderModeInfo(); });
+}
+
+function renderModeInfo() {
+  let t;
+  if (hasFSA) t = 'Приём файлов: запись сразу на диск (вы выберете, куда сохранить).';
+  else if (swOK) t = 'Приём файлов: потоковая загрузка прямо на диск, лимита размера нет.';
+  else t = 'Приём файлов: через память браузера. Для очень больших файлов (больше 1-2 ГБ) откройте сайт в Chrome или Edge на компьютере.';
+  $('#modeInfo').textContent = t;
+}
+
+function memSink(t) {
+  const parts = [];
+  return {
+    write: async (b) => { parts.push(b); },
+    close: async () => {
+      const blob = new Blob(parts, { type: 'application/octet-stream' });
+      parts.length = 0;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = t.name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 120000);
+    },
+    abort: async () => { parts.length = 0; },
+  };
+}
+
+async function swSink(t, onCancel) {
+  const reg = await navigator.serviceWorker.ready;
+  const sw = reg.active;
+  if (!sw) throw new Error('Service Worker не активен');
+  const id = uid();
+  const ch = new MessageChannel();
+  await new Promise((res, rej) => {
+    const to = setTimeout(() => rej(new Error('Service Worker не отвечает')), 5000);
+    ch.port1.onmessage = (e) => { if (e.data === 'ready') { clearTimeout(to); res(); } };
+    sw.postMessage({ type: 'prepare', id, name: t.name, size: t.size }, [ch.port2]);
+  });
+  ch.port1.onmessage = (e) => { if (e.data && e.data.type === 'cancelled') onCancel(); };
+  const iframe = document.createElement('iframe');
+  iframe.hidden = true;
+  iframe.src = new URL('__dl/' + id, reg.scope).href;
+  document.body.appendChild(iframe);
+  const ping = setInterval(() => ch.port1.postMessage({ type: 'ping' }), 10000);
+  return {
+    write: async (b) => { ch.port1.postMessage(b, [b]); },
+    close: async () => {
+      ch.port1.postMessage({ type: 'end' });
+      clearInterval(ping);
+      setTimeout(() => iframe.remove(), 120000);
+    },
+    abort: async () => {
+      try { ch.port1.postMessage({ type: 'abort' }); } catch (_) {}
+      clearInterval(ping);
+      iframe.remove();
+    },
+  };
+}
+
+async function makeSink(t, onCancel) {
+  if (t.handle) {
+    const w = await t.handle.createWritable();
+    return {
+      write: (b) => w.write(b),
+      close: () => w.close(),
+      abort: async () => { try { await w.abort(); } catch (_) {} },
+    };
+  }
+  if (swOK) return swSink(t, onCancel);
+  return memSink(t);
+}
+
+/* ================= Не даём заснуть во время передачи ================= */
+
+let wakeLock = null;
+function refreshBusy() {
+  let busy = false;
+  for (const l of links.values()) if (l.busy()) { busy = true; break; }
+  document.body.dataset.busy = busy ? '1' : '';
+  if (busy && !wakeLock && navigator.wakeLock) {
+    navigator.wakeLock.request('screen').then(w => {
+      wakeLock = w;
+      w.addEventListener('release', () => { wakeLock = null; });
+    }).catch(() => {});
+  } else if (!busy && wakeLock) {
+    wakeLock.release().catch(() => {});
+    wakeLock = null;
+  }
+}
+window.addEventListener('beforeunload', (e) => {
+  if (document.body.dataset.busy) { e.preventDefault(); e.returnValue = ''; }
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') refreshBusy();
+});
+
+/* ================= Соединение с другом ================= */
+
+const links = new Map();
+
+function waitLow(dc) {
+  return new Promise((res) => {
+    let done = false;
+    const f = () => {
+      if (done) return;
+      done = true;
+      dc.removeEventListener('bufferedamountlow', f);
+      res();
+    };
+    dc.addEventListener('bufferedamountlow', f);
+    setTimeout(f, 250);
+  });
+}
+
+class Link {
+  constructor(conn, code) {
+    this.conn = conn;
+    this.code = code;
+    this.out = new Map();   // исходящие файлы
+    this.inc = new Map();   // входящие файлы
+    this.cur = null;        // файл, который сейчас принимается
+    this.sending = false;
+    this.isOpen = false;
+    this.buildUI();
+    this.setState('connecting');
+
+    conn.on('open', () => {
+      this.isOpen = true;
+      clearTimeout(this.timer);
+      this.dc = conn.dataChannel;
+      this.setState('open');
+      const pc = conn.peerConnection;
+      if (pc) {
+        pc.addEventListener('iceconnectionstatechange', () => {
+          if (pc.iceConnectionState === 'failed') this.iceFailed();
+        });
+      }
+    });
+    conn.on('data', (d) => this.onData(d));
+    conn.on('close', () => this.onClose());
+    conn.on('error', (e) => console.warn('conn error', e));
+    this.timer = setTimeout(() => { if (!this.isOpen) this.iceFailed(); }, CONNECT_TIMEOUT);
+  }
+
+  busy() {
+    for (const t of this.out.values()) if (t.state === 'send' || t.state === 'finishing') return true;
+    for (const t of this.inc.values()) if (t.state === 'recv') return true;
+    return false;
+  }
+
+  /* ---------- интерфейс карточки ---------- */
+  buildUI() {
+    const card = el('section', 'card');
+    card.innerHTML = `
+      <div class="peer-head">
+        <div><div class="label">Друг</div><div class="peer-title">Код <b></b></div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="badge"></span>
+          <button class="ghost small" data-role="close">Закрыть</button>
+        </div>
+      </div>
+      <div class="drop disabled" tabindex="0" role="button">
+        <input type="file" multiple hidden>
+        <div class="drop-big">Перетащите файлы сюда</div>
+        <div class="drop-small">или нажмите, чтобы выбрать</div>
+      </div>
+      <div class="notice" hidden></div>
+      <div class="list"></div>`;
+    $('b', card).textContent = this.code;
+    this.card = card;
+    this.badge = $('.badge', card);
+    this.drop = $('.drop', card);
+    this.input = $('input', card);
+    this.notice = $('.notice', card);
+    this.list = $('.list', card);
+
+    this.drop.addEventListener('click', () => this.input.click());
+    this.drop.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.input.click(); } });
+    this.input.addEventListener('change', () => { this.sendFiles(this.input.files); this.input.value = ''; });
+    ['dragenter', 'dragover'].forEach(ev => this.drop.addEventListener(ev, (e) => { e.preventDefault(); this.drop.classList.add('over'); }));
+    ['dragleave', 'drop'].forEach(ev => this.drop.addEventListener(ev, (e) => { e.preventDefault(); this.drop.classList.remove('over'); }));
+    this.drop.addEventListener('drop', (e) => { if (e.dataTransfer && e.dataTransfer.files.length) this.sendFiles(e.dataTransfer.files); });
+    $('[data-role=close]', card).addEventListener('click', () => this.destroy());
+    $('#peers').prepend(card);
+  }
+
+  setState(s) {
+    this.state = s;
+    const map = {
+      connecting: ['Соединяемся…', ''],
+      open: ['Подключено', 'ok'],
+      closed: ['Отключено', 'err'],
+    };
+    const [text, cls] = map[s];
+    this.badge.textContent = text;
+    this.badge.className = 'badge ' + cls;
+    this.drop.classList.toggle('disabled', s !== 'open');
+  }
+
+  setNotice(text) {
+    this.notice.textContent = text || '';
+    this.notice.hidden = !text;
+  }
+
+  iceFailed() {
+    if (this.isOpen && this.conn.peerConnection && this.conn.peerConnection.iceConnectionState !== 'failed') return;
+    this.setNotice('Не удалось установить прямое соединение. Так бывает в мобильных сетях или из-за строгих настроек роутера. Попробуйте другую сеть (например, Wi-Fi) или добавьте TURN-сервер (см. README).');
+    if (!this.isOpen) {
+      this.setState('closed');
+      try { this.conn.close(); } catch (_) {}
+      this.addReconnect();
+    }
+  }
+
+  addReconnect() {
+    if (this.reconnectBtn) return;
+    const b = el('button', 'small', 'Подключиться снова');
+    b.addEventListener('click', () => { const c = this.code; this.destroy(); connectTo(c); });
+    $('.peer-head > div:last-child', this.card).prepend(b);
+    this.reconnectBtn = b;
+  }
+
+  onClose() {
+    const was = this.isOpen;
+    this.isOpen = false;
+    clearTimeout(this.timer);
+    for (const t of this.out.values()) {
+      if (['offered', 'ready', 'send', 'finishing'].includes(t.state)) this.finishState(t, 'error', 'Соединение прервано');
+    }
+    for (const t of this.inc.values()) {
+      if (['offer', 'accepted', 'recv'].includes(t.state)) {
+        if (t.sink) { try { t.sink.abort(); } catch (_) {} }
+        this.finishState(t, 'error', 'Соединение прервано');
+      }
+    }
+    this.cur = null;
+    this.setState('closed');
+    if (was) this.addReconnect();
+    refreshBusy();
+  }
+
+  destroy() {
+    try { this.conn.close(); } catch (_) {}
+    clearTimeout(this.timer);
+    for (const t of this.inc.values()) if (t.sink && t.state === 'recv') { try { t.sink.abort(); } catch (_) {} }
+    this.card.remove();
+    if (links.get(this.code) === this) links.delete(this.code);
+    refreshBusy();
+  }
+
+  /* ---------- строки со списком файлов ---------- */
+  makeRow(t, dir) {
+    const r = el('div', 'row');
+    r.innerHTML = '<div class="row-top"><div class="name"><small></small><span></span></div><div class="btns"></div></div><div class="bar"><i></i></div><div class="meta"></div>';
+    $('small', r).textContent = dir === 'out' ? 'Отправка' : 'Получение';
+    $('.name span', r).textContent = t.name + ' · ' + fmtBytes(t.size);
+    t.row = r;
+    t.dir = dir;
+    this.list.prepend(r);
+  }
+
+  btn(text, cls, fn) {
+    const b = el('button', cls + ' small', text);
+    b.addEventListener('click', fn);
+    return b;
+  }
+
+  updateRow(t) {
+    if (!t.row) return;
+    const r = t.row;
+    const btns = $('.btns', r);
+    const meta = $('.meta', r);
+    const bar = $('.bar i', r);
+    const done = t.dir === 'out' ? t.acked : t.written;
+    const total = t.size || 1;
+    let pct = Math.min(100, (done / total) * 100);
+    let text = '';
+    let cls = '';
+    let buttons = [];
+    let bad = false;
+
+    if (t.dir === 'out') {
+      switch (t.state) {
+        case 'offered': text = 'Ждём, пока друг примет файл'; buttons = [this.btn('Отменить', 'ghost', () => this.cancel(t))]; break;
+        case 'ready': text = 'В очереди на отправку'; buttons = [this.btn('Отменить', 'ghost', () => this.cancel(t))]; break;
+        case 'send': text = this.progressText(t, done); buttons = [this.btn('Отменить', 'ghost', () => this.cancel(t))]; break;
+        case 'finishing': pct = 100; text = 'Завершаем…'; break;
+        case 'done': pct = 100; text = 'Отправлено'; cls = 'done'; break;
+        case 'rejected': text = 'Друг отклонил файл'; pct = 0; break;
+        case 'cancelled': text = 'Отменено'; pct = 0; break;
+        case 'error': text = 'Ошибка: ' + (t.err || 'неизвестная'); bad = true; break;
+      }
+    } else {
+      switch (t.state) {
+        case 'offer':
+          text = 'Друг хочет отправить вам файл';
+          buttons = [this.btn('Принять', '', () => this.accept(t)), this.btn('Отклонить', 'ghost', () => this.reject(t))];
+          break;
+        case 'accepted': text = 'Ожидаем начала передачи…'; buttons = [this.btn('Отменить', 'ghost', () => this.cancel(t))]; break;
+        case 'recv': text = this.progressText(t, done); buttons = [this.btn('Отменить', 'ghost', () => this.cancel(t))]; break;
+        case 'done': pct = 100; text = 'Получено и сохранено'; cls = 'done'; break;
+        case 'rejected': text = 'Отклонено'; pct = 0; break;
+        case 'cancelled': text = 'Отменено'; pct = 0; break;
+        case 'error': text = 'Ошибка: ' + (t.err || 'неизвестная'); bad = true; break;
+      }
+    }
+    r.className = 'row ' + cls + (bad ? ' bad' : '');
+    bar.style.width = (bad ? 100 : pct) + '%';
+    meta.textContent = text;
+    meta.className = 'meta';
+    if (t.dir === 'in' && t.state === 'offer' && !hasFSA && !swOK && t.size > 1.5e9) {
+      meta.textContent += '. Внимание: этот браузер держит файл в памяти, лучше открыть сайт в Chrome или Edge.';
+      meta.className = 'meta warn';
+    }
+    if (t._btnState !== t.state) {
+      btns.replaceChildren(...buttons);
+      t._btnState = t.state;
+      refreshBusy();
+    }
+    if (t.dir === 'in') this.updateAcceptAll();
+  }
+
+  progressText(t, done) {
+    const now = performance.now();
+    if (!t.lastT) { t.lastT = now; t.lastB = done; t.speed = 0; }
+    else if (now - t.lastT >= 700) {
+      const inst = (done - t.lastB) / ((now - t.lastT) / 1000);
+      t.speed = t.speed ? t.speed * 0.6 + inst * 0.4 : inst;
+      t.lastT = now; t.lastB = done;
+    }
+    const pct = Math.floor((done / (t.size || 1)) * 100);
+    let s = `${pct}% · ${fmtBytes(done)} из ${fmtBytes(t.size)}`;
+    if (t.speed > 1) s += ` · ${fmtBytes(t.speed)}/с · осталось ${fmtTime((t.size - done) / t.speed)}`;
+    return s;
+  }
+
+  touch(t) {
+    if (t.pending) return;
+    t.pending = true;
+    setTimeout(() => { t.pending = false; this.updateRow(t); }, 250);
+  }
+
+  finishState(t, state, err) {
+    t.state = state;
+    if (err) t.err = err;
+    if (t.wake) t.wake();
+    this.updateRow(t);
+  }
+
+  updateAcceptAll() {
+    const pend = [...this.inc.values()].filter(t => t.state === 'offer');
+    if (pend.length > 1) {
+      if (!this.allBtn) {
+        this.allBtn = el('button', 'small', '');
+        this.allBtn.addEventListener('click', () => this.acceptAll());
+        this.notice.replaceChildren(this.allBtn);
+        this.notice.hidden = false;
+      }
+      this.allBtn.textContent = `Принять все (${pend.length})`;
+    } else if (this.allBtn) {
+      this.allBtn.remove();
+      this.allBtn = null;
+      if (!this.notice.textContent) this.notice.hidden = true;
+    }
+  }
+
+  /* ---------- отправка ---------- */
+  ctl(obj) {
+    try { this.conn.send(JSON.stringify(obj)); } catch (e) { console.warn('ctl failed', e); }
+  }
+
+  sendFiles(fileList) {
+    if (!this.isOpen) return;
+    for (const f of fileList) {
+      const t = { id: uid(), file: f, name: cleanName(f.name), size: f.size, state: 'offered', sent: 0, acked: 0 };
+      this.out.set(t.id, t);
+      this.makeRow(t, 'out');
+      this.updateRow(t);
+      this.ctl({ t: 'offer', id: t.id, name: t.name, size: t.size });
+    }
+  }
+
+  pump() {
+    if (this.sending || !this.isOpen) return;
+    for (const t of this.out.values()) {
+      if (t.state === 'ready') { this.stream(t); return; }
+    }
+  }
+
+  async stream(t) {
+    this.sending = true;
+    t.state = 'send';
+    t.t0 = performance.now();
+    this.updateRow(t);
+    this.ctl({ t: 'start', id: t.id });
+    const dc = this.conn.dataChannel;
+    dc.bufferedAmountLowThreshold = LOW_WATER;
+    let next = null;
+    try {
+      let off = 0;
+      if (t.size > 0) next = t.file.slice(0, Math.min(CHUNK, t.size)).arrayBuffer();
+      while (off < t.size) {
+        const buf = await next;
+        const n = off + buf.byteLength;
+        next = n < t.size ? t.file.slice(n, Math.min(n + CHUNK, t.size)).arrayBuffer() : null;
+        while (dc.bufferedAmount > HIGH_WATER && t.state === 'send' && dc.readyState === 'open') await waitLow(dc);
+        while (off - t.acked >= WINDOW && t.state === 'send' && dc.readyState === 'open') {
+          await new Promise((r) => { t.wake = r; setTimeout(r, 500); });
+        }
+        if (t.state !== 'send') return;
+        if (dc.readyState !== 'open') throw new Error('Соединение прервано');
+        dc.send(buf);
+        off = n;
+        t.sent = off;
+        this.touch(t);
+      }
+      if (t.state === 'send') {
+        t.state = 'finishing';
+        this.ctl({ t: 'end', id: t.id });
+        this.updateRow(t);
+      }
+    } catch (e) {
+      if (t.state === 'send') {
+        this.ctl({ t: 'cancel', id: t.id });
+        this.finishState(t, 'error', e.message || String(e));
+      }
+    } finally {
+      if (next && next.catch) next.catch(() => {});
+      this.sending = false;
+      this.pump();
+    }
+  }
+
+  /* ---------- приём ---------- */
+  async accept(t, dirHandle) {
+    let handle = null;
+    if (hasFSA) {
+      try {
+        handle = dirHandle ? await uniqueHandle(dirHandle, t.name) : await window.showSaveFilePicker({ suggestedName: t.name });
+      } catch (e) {
+        if (e && e.name === 'AbortError') return;
+        console.warn('save picker failed, fallback', e);
+        handle = null;
+      }
+    }
+    t.handle = handle;
+    t.state = 'accepted';
+    this.updateRow(t);
+    this.ctl({ t: 'accept', id: t.id });
+  }
+
+  async acceptAll() {
+    const pend = [...this.inc.values()].filter(t => t.state === 'offer');
+    let dir = null;
+    if (hasFSA && typeof window.showDirectoryPicker === 'function') {
+      try { dir = await window.showDirectoryPicker({ mode: 'readwrite' }); }
+      catch (e) { if (e && e.name === 'AbortError') return; dir = null; }
+    }
+    for (const t of pend) await this.accept(t, dir);
+  }
+
+  reject(t) {
+    this.ctl({ t: 'reject', id: t.id });
+    this.finishState(t, 'rejected');
+    this.updateAcceptAll();
+  }
+
+  cancel(t) {
+    const st = t.state;
+    if (['done', 'rejected', 'cancelled', 'error'].includes(st)) return;
+    this.ctl({ t: 'cancel', id: t.id });
+    if (t.dir === 'in' && t.sink) { try { t.sink.abort(); } catch (_) {} }
+    if (this.cur === t) this.cur = null;
+    this.finishState(t, 'cancelled');
+  }
+
+  fail(t, e) {
+    if (t.failed) return;
+    t.failed = true;
+    console.warn('transfer failed', e);
+    if (t.sink) { try { t.sink.abort(); } catch (_) {} }
+    if (this.cur === t) this.cur = null;
+    this.ctl({ t: 'error', id: t.id, msg: (e && e.message) || String(e) });
+    this.finishState(t, 'error', (e && e.message) || String(e));
+  }
+
+  /* ---------- входящие данные ---------- */
+  onData(d) {
+    if (typeof d === 'string') {
+      let m;
+      try { m = JSON.parse(d); } catch (_) { return; }
+      this.onCtl(m);
+    } else if (d instanceof ArrayBuffer) {
+      this.onChunk(d);
+    } else if (ArrayBuffer.isView(d)) {
+      this.onChunk(d.buffer.slice(d.byteOffset, d.byteOffset + d.byteLength));
+    }
+  }
+
+  onCtl(m) {
+    if (!m || typeof m.t !== 'string') return;
+    switch (m.t) {
+      case 'offer': {
+        const size = Number(m.size);
+        if (typeof m.id !== 'string' || !Number.isFinite(size) || size < 0 || this.inc.has(m.id)) return;
+        const t = { id: m.id, name: cleanName(m.name), size, state: 'offer', recv: 0, written: 0, acked: 0 };
+        this.inc.set(t.id, t);
+        this.makeRow(t, 'in');
+        this.updateRow(t);
+        break;
+      }
+      case 'accept': {
+        const t = this.out.get(m.id);
+        if (t && t.state === 'offered') { t.state = 'ready'; this.updateRow(t); this.pump(); }
+        break;
+      }
+      case 'reject': {
+        const t = this.out.get(m.id);
+        if (t && t.state === 'offered') this.finishState(t, 'rejected');
+        break;
+      }
+      case 'start': {
+        const t = this.inc.get(m.id);
+        if (!t || t.state !== 'accepted') { this.ctl({ t: 'cancel', id: m.id }); break; }
+        this.cur = t;
+        t.state = 'recv';
+        t.recv = 0; t.written = 0; t.acked = 0;
+        this.updateRow(t);
+        t.chain = (async () => {
+          t.sink = await makeSink(t, () => this.cancel(t));
+        })().catch((e) => this.fail(t, e));
+        break;
+      }
+      case 'end': {
+        const t = this.inc.get(m.id);
+        if (!t || t.state !== 'recv') break;
+        if (this.cur === t) this.cur = null;
+        t.chain = t.chain.then(async () => {
+          if (t.failed || t.state !== 'recv') return;
+          if (t.written !== t.size) throw new Error('размер файла не совпал');
+          await t.sink.close();
+          t.state = 'done';
+          this.updateRow(t);
+          this.ctl({ t: 'done', id: t.id });
+        }).catch((e) => this.fail(t, e));
+        break;
+      }
+      case 'ack': {
+        const t = this.out.get(m.id);
+        if (t && Number.isFinite(m.bytes)) { t.acked = Math.max(t.acked, m.bytes); if (t.wake) t.wake(); this.touch(t); }
+        break;
+      }
+      case 'done': {
+        const t = this.out.get(m.id);
+        if (t && (t.state === 'finishing' || t.state === 'send')) { t.acked = t.size; this.finishState(t, 'done'); }
+        break;
+      }
+      case 'cancel': {
+        const t = this.out.get(m.id) || this.inc.get(m.id);
+        if (!t || ['done', 'rejected', 'cancelled', 'error'].includes(t.state)) break;
+        if (t.dir === 'in') {
+          if (t.sink) { try { t.sink.abort(); } catch (_) {} }
+          if (this.cur === t) this.cur = null;
+        }
+        this.finishState(t, 'cancelled');
+        break;
+      }
+      case 'error': {
+        const t = this.out.get(m.id) || this.inc.get(m.id);
+        if (!t || ['done', 'cancelled', 'error'].includes(t.state)) break;
+        if (t.dir === 'in') {
+          if (t.sink) { try { t.sink.abort(); } catch (_) {} }
+          if (this.cur === t) this.cur = null;
+        }
+        this.finishState(t, 'error', 'у собеседника: ' + (m.msg || 'сбой'));
+        break;
+      }
+    }
+  }
+
+  onChunk(buf) {
+    const t = this.cur;
+    if (!t || t.state !== 'recv') return;
+    t.recv += buf.byteLength;
+    if (t.recv > t.size) { this.fail(t, new Error('получено больше, чем заявлено')); return; }
+    t.chain = t.chain.then(async () => {
+      if (t.failed || t.state !== 'recv') return;
+      const len = buf.byteLength; // после write буфер может быть передан в Service Worker и обнулён
+      await t.sink.write(buf);
+      t.written += len;
+      if (t.written - t.acked >= ACK_EVERY) {
+        t.acked = t.written;
+        this.ctl({ t: 'ack', id: t.id, bytes: t.written });
+      }
+      this.touch(t);
+    }).catch((e) => this.fail(t, e));
+  }
+}
+
+/* ================= Peer ================= */
+
+let peer = null;
+let myCode = '';
+let peerOpen = false;
+let pendingJoin = '';
+
+function iceOptions() {
+  const opts = { debug: 0, config: { iceServers: ICE_SERVERS } };
+  // Свой сигнальный сервер: ?ph=host&pp=9000&pa=/&ps=0
+  const q = new URLSearchParams(location.search);
+  if (q.get('ph')) {
+    opts.host = q.get('ph');
+    opts.port = Number(q.get('pp')) || 443;
+    opts.path = q.get('pa') || '/';
+    opts.secure = q.get('ps') !== '0';
+  }
+  return opts;
+}
+
+function myLinkText() {
+  return location.origin + location.pathname + location.search + '#' + myCode;
+}
+
+function renderMe() {
+  $('#myCode').textContent = myCode;
+  const link = myLinkText();
+  $('#myLink').value = link;
+  try {
+    const qr = qrcode(0, 'M');
+    qr.addData(link);
+    qr.make();
+    const box = $('#qr');
+    box.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+    box.hidden = false;
+  } catch (_) { $('#qr').hidden = true; }
+}
+
+function startPeer(code) {
+  myCode = code;
+  peerOpen = false;
+  setStatus('', 'Подключаюсь к серверу…');
+  renderMe();
+  peer = new Peer(ID_PREFIX + code, iceOptions());
+
+  peer.on('open', () => {
+    peerOpen = true;
+    saveCode(myCode);
+    setStatus('ok', 'Онлайн: друзья могут подключаться по вашей ссылке');
+    if (pendingJoin) { const c = pendingJoin; pendingJoin = ''; connectTo(c); }
+  });
+
+  peer.on('connection', (conn) => {
+    const code = conn.peer.startsWith(ID_PREFIX) ? normCode(conn.peer.slice(ID_PREFIX.length)) : '';
+    if (!code) { conn.close(); return; }
+    addLink(conn, code);
+  });
+
+  peer.on('disconnected', () => {
+    peerOpen = false;
+    setStatus('', 'Связь с сервером потеряна, переподключаюсь…');
+    setTimeout(() => { if (peer && !peer.destroyed && peer.disconnected) peer.reconnect(); }, 1500);
+  });
+
+  peer.on('error', (err) => {
+    console.warn('peer error', err.type, err);
+    switch (err.type) {
+      case 'unavailable-id': {
+        // код занят (например, открыта вторая вкладка), берём другой
+        peer.destroy();
+        startPeer(genCode());
+        break;
+      }
+      case 'peer-unavailable': {
+        const m = /sfx-([A-Z0-9]{6})/.exec(err.message || '');
+        const code = m ? m[1] : '';
+        const l = links.get(code);
+        if (l && !l.isOpen) l.destroy();
+        showMsg(`Устройство с кодом ${code || ''} не найдено. Проверьте код и убедитесь, что друг открыл сайт и не закрыл вкладку.`, true);
+        break;
+      }
+      case 'network':
+      case 'server-error':
+      case 'socket-error':
+      case 'socket-closed':
+        if (!peerOpen) {
+          setStatus('err', 'Нет связи с сервером. Пробую снова…');
+          setTimeout(() => { if (peer && !peer.destroyed && !peerOpen) { const c = myCode; peer.destroy(); startPeer(c); } }, 4000);
+        }
+        break;
+      default:
+        break;
+    }
+  });
+}
+
+function addLink(conn, code) {
+  const old = links.get(code);
+  if (old) old.destroy();
+  const l = new Link(conn, code);
+  links.set(code, l);
+  showMsg('');
+  return l;
+}
+
+function connectTo(code) {
+  if (!code) return;
+  if (code === myCode) { showMsg('Это ваш собственный код. Введите код друга.', true); return; }
+  if (!peerOpen) { pendingJoin = code; return; }
+  const ex = links.get(code);
+  if (ex && ex.state !== 'closed') { ex.card.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+  showMsg('');
+  const conn = peer.connect(ID_PREFIX + code, { serialization: 'raw', reliable: true });
+  addLink(conn, code);
+}
+
+/* ================= Запуск ================= */
+
+$('#copyBtn').addEventListener('click', async () => {
+  const link = $('#myLink').value;
+  try { await navigator.clipboard.writeText(link); }
+  catch (_) { $('#myLink').select(); document.execCommand('copy'); }
+  const b = $('#copyBtn');
+  b.textContent = 'Скопировано';
+  setTimeout(() => { b.textContent = 'Копировать'; }, 1500);
+});
+$('#myLink').addEventListener('focus', (e) => e.target.select());
+
+$('#joinForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const code = normCode($('#joinInput').value);
+  if (!code) { showMsg('Введите код друга: 6 символов (буквы и цифры) или ссылку целиком.', true); return; }
+  $('#joinInput').value = '';
+  connectTo(code);
+});
+
+window.addEventListener('hashchange', () => {
+  const c = normCode(location.hash);
+  if (c && c !== myCode) connectTo(c);
+});
+
+renderModeInfo();
+{
+  const fromHash = normCode(location.hash);
+  const mine = loadCode();
+  if (fromHash && fromHash !== mine) pendingJoin = fromHash;
+  startPeer(mine);
+}
+</script>
+<noscript>Для работы сайта нужен JavaScript.</noscript>
+</body>
+</html>
