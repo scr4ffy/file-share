@@ -53,8 +53,8 @@
   .hint { color: var(--muted); font-size: 14px; margin: 12px 0 0; }
   #qr { width: 132px; background: #fff; padding: 6px; border-radius: 10px; border: 1px solid var(--line); }
   #qr svg { display: block; width: 100%; height: auto; }
-  .status { display: inline-flex; align-items: flex-start; gap: 8px; font-size: 14px; color: var(--muted); margin-top: 12px; }
-  .dot { flex: none; width: 9px; height: 9px; margin-top: 7px; border-radius: 50%; background: var(--warn); }
+  .status { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); margin-top: 12px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--warn); }
   .dot.ok { background: var(--ok); } .dot.err { background: var(--err); }
   #msg { margin: 0 0 14px; padding: 12px 14px; border-radius: 12px; background: var(--accent-soft); font-size: 14px; }
   #msg.err { background: color-mix(in srgb, var(--err) 14%, var(--card)); }
@@ -85,23 +85,6 @@
   .row.bad .bar i { background: var(--err); }
   .meta { font-size: 13px; color: var(--muted); }
   .meta.warn { color: var(--warn); }
-  textarea {
-    width: 100%; min-height: 84px; resize: vertical; padding: 10px 12px; font: 13px/1.4 ui-monospace, Menlo, Consolas, monospace;
-    color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; word-break: break-all;
-  }
-  textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
-  details.card > summary { cursor: pointer; font-weight: 600; }
-  details.card[open] > summary { margin-bottom: 10px; }
-  .qrbox { width: min(300px, 100%); background: #fff; padding: 8px; border-radius: 12px; border: 1px solid var(--line); margin-top: 10px; }
-  .qrbox svg { display: block; width: 100%; height: auto; }
-  label.chk { display: flex; gap: 8px; align-items: center; margin-top: 8px; font-size: 14px; color: var(--muted); }
-  #scanOverlay { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.86); display: flex; align-items: center; justify-content: center; padding: 16px; }
-  #scanOverlay[hidden] { display: none; }
-  .scan-box { width: min(520px, 100%); text-align: center; color: #fff; }
-  .scan-box video { width: 100%; max-height: 62vh; border-radius: 14px; background: #000; object-fit: cover; }
-  .scan-box p { margin: 12px 0; color: #dbe2f0; }
-  .step { margin-top: 14px; }
-  .step .row-inline { margin-top: 8px; flex-wrap: wrap; }
   .foot { margin-top: 26px; color: var(--muted); font-size: 13px; }
   .foot p { margin: 6px 0; }
   @media (max-width: 520px) {
@@ -142,39 +125,6 @@
     </form>
   </section>
 
-  <details class="card" id="manual">
-    <summary>Подключение без сервера (если обычное не работает)</summary>
-    <p class="hint" style="margin-top:0">Работает даже тогда, когда сервер сигналов недоступен. Вы обмениваетесь двумя короткими кодами (через мессенджер или показав друг другу QR-код камерой), после чего файлы идут напрямую. Занимает около минуты.</p>
-
-    <div class="step">
-      <div class="label">Шаг 1. Тот, кто начинает, создаёт приглашение</div>
-      <button type="button" id="mkOffer">Создать приглашение</button>
-      <label class="chk"><input type="checkbox" id="fullCode"> Длинный код (если короткий не сработал у друга)</label>
-      <div id="offerBox" hidden>
-        <p class="hint">Отправьте другу эту ссылку или покажите QR-код: друг отсканирует его камерой телефона. Ему покажется ответ, который нужно прислать вам обратно.</p>
-        <div id="offerQr" class="qrbox" hidden></div>
-        <textarea id="offerCode" readonly></textarea>
-        <div class="row-inline">
-          <button type="button" class="ghost small" id="copyOfferLink">Копировать ссылку</button>
-          <button type="button" class="ghost small" id="copyOfferCode">Копировать код</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="step">
-      <div class="label">Шаг 2. Вставьте то, что прислал друг (приглашение или ответ)</div>
-      <textarea id="pasteCode" placeholder="Вставьте сюда код или ссылку, которая начинается с SFO или SFA"></textarea>
-      <div class="row-inline"><button type="button" id="applyCode">Применить</button><button type="button" class="ghost" id="scanBtn">Сканировать QR-код</button></div>
-      <div id="answerBox" hidden>
-        <p class="hint">Отправьте этот ответ тому, кто прислал приглашение, или покажите ему QR-код (у него на экране кнопка «Сканировать QR-код»).</p>
-        <div id="answerQr" class="qrbox" hidden></div>
-        <textarea id="answerCode" readonly style="margin-top:10px"></textarea>
-        <div class="row-inline"><button type="button" class="ghost small" id="copyAnswer">Копировать ответ</button></div>
-      </div>
-    </div>
-    <div class="notice" id="manualStatus" hidden></div>
-  </details>
-
   <div id="peers"></div>
 
   <div class="foot">
@@ -183,16 +133,7 @@
   </div>
 </main>
 
-<div id="scanOverlay" hidden>
-  <div class="scan-box">
-    <video id="scanVideo" playsinline muted></video>
-    <p>Наведите камеру на QR-код приглашения или ответа</p>
-    <button type="button" class="ghost" id="scanCancel" style="color:#fff;border-color:#8b97ad">Отмена</button>
-  </div>
-</div>
-
-<script src="mqtt.min.js"></script>
-<script src="jsQR.js"></script>
+<script src="peerjs.min.js"></script>
 <script src="qrcode.js"></script>
 <script>
 'use strict';
@@ -209,19 +150,12 @@ const ICE_SERVERS = [
   { urls: 'stun:stun.cloudflare.com:3478' },
 ];
 
-// Серверы для поиска друг друга. Подключаемся ко всем сразу, хватит одного рабочего.
-const RELAYS = [
-  { type: 'mqtt', url: 'wss://broker.emqx.io:8084/mqtt', name: 'EMQX' },
-  { type: 'mqtt', url: 'wss://broker.hivemq.com:8884/mqtt', name: 'HiveMQ' },
-  { type: 'mqtt', url: 'wss://test.mosquitto.org:8081', name: 'Mosquitto' },
-  { type: 'ntfy', url: 'https://ntfy.sh', name: 'ntfy' },
-];
-
 const CHUNK = 64 * 1024;             // размер одного пакета
 const HIGH_WATER = 8 * 1024 * 1024;  // не держим в буфере канала больше
 const LOW_WATER = 2 * 1024 * 1024;
 const WINDOW = 32 * 1024 * 1024;     // сколько байт можно отправить вперёд без подтверждения
 const ACK_EVERY = 2 * 1024 * 1024;   // как часто получатель подтверждает запись на диск
+const ID_PREFIX = 'sfx-';
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const CONNECT_TIMEOUT = 25000;
 
@@ -413,19 +347,6 @@ document.addEventListener('visibilitychange', () => {
 
 const links = new Map();
 
-// Идентификатор этой вкладки: по нему собеседник узнаёт нас после переподключения
-// и продолжает передачу с того же места.
-const TAB_ID = (() => {
-  try {
-    let d = sessionStorage.getItem('sf_tab');
-    if (!d) { d = uid(); sessionStorage.setItem('sf_tab', d); }
-    return d;
-  } catch (_) { return uid(); }
-})();
-// Незавершённые передачи оборвавшихся соединений: id вкладки собеседника -> { out, inc }
-const resumeStore = new Map();
-const FINAL_STATES = ['done', 'rejected', 'cancelled', 'error'];
-
 function waitLow(dc) {
   return new Promise((res) => {
     let done = false;
@@ -441,28 +362,22 @@ function waitLow(dc) {
 }
 
 class Link {
-  constructor(conn, code, label) {
+  constructor(conn, code) {
     this.conn = conn;
     this.code = code;
-    this.label = label || '';
     this.out = new Map();   // исходящие файлы
     this.inc = new Map();   // входящие файлы
     this.cur = null;        // файл, который сейчас принимается
     this.sending = false;
     this.isOpen = false;
-    this.peerId = '';
-    this.destroyed = false;
     this.buildUI();
     this.setState('connecting');
 
     conn.on('open', () => {
       this.isOpen = true;
-      this.openedAt = Date.now();
       clearTimeout(this.timer);
       this.dc = conn.dataChannel;
       this.setState('open');
-      this.setNotice('');
-      this.ctl({ t: 'hello', id: TAB_ID });
       const pc = conn.peerConnection;
       if (pc) {
         pc.addEventListener('iceconnectionstatechange', () => {
@@ -500,8 +415,7 @@ class Link {
       </div>
       <div class="notice" hidden></div>
       <div class="list"></div>`;
-    if (this.label) $('.peer-title', card).textContent = this.label;
-    else $('b', card).textContent = this.code;
+    $('b', card).textContent = this.code;
     this.card = card;
     this.badge = $('.badge', card);
     this.drop = $('.drop', card);
@@ -548,126 +462,39 @@ class Link {
   }
 
   addReconnect() {
-    if (this.reconnectBtn || this.label) return;
+    if (this.reconnectBtn) return;
     const b = el('button', 'small', 'Подключиться снова');
-    b.addEventListener('click', () => { const c = this.code; this.destroy(true); connectTo(c); });
+    b.addEventListener('click', () => { const c = this.code; this.destroy(); connectTo(c); });
     $('.peer-head > div:last-child', this.card).prepend(b);
     this.reconnectBtn = b;
-  }
-
-  // Оборвалось соединение: незавершённые передачи откладываем, чтобы продолжить после переподключения
-  stashTransfers() {
-    let any = false;
-    for (const map of [this.out, this.inc]) {
-      for (const t of map.values()) {
-        if (FINAL_STATES.includes(t.state)) continue;
-        if (t.state !== 'paused') t.prev = t.state;
-        t.state = 'paused';
-        any = true;
-        this.updateRow(t);
-      }
-    }
-    if (any && this.peerId) resumeStore.set(this.peerId, { out: this.out, inc: this.inc });
-    return any;
   }
 
   onClose() {
     const was = this.isOpen;
     this.isOpen = false;
     clearTimeout(this.timer);
-    if (this.destroyed) return;
+    for (const t of this.out.values()) {
+      if (['offered', 'ready', 'send', 'finishing'].includes(t.state)) this.finishState(t, 'error', 'Соединение прервано');
+    }
+    for (const t of this.inc.values()) {
+      if (['offer', 'accepted', 'recv'].includes(t.state)) {
+        if (t.sink) { try { t.sink.abort(); } catch (_) {} }
+        this.finishState(t, 'error', 'Соединение прервано');
+      }
+    }
     this.cur = null;
-    if (this.peerId) {
-      this.stashTransfers();
-    } else {
-      // собеседник не поддерживает продолжение (старая версия): завершаем с ошибкой
-      for (const t of this.out.values()) {
-        if (['offered', 'ready', 'send', 'finishing'].includes(t.state)) this.finishState(t, 'error', 'Соединение прервано');
-      }
-      for (const t of this.inc.values()) {
-        if (['offer', 'accepted', 'recv'].includes(t.state)) {
-          if (t.sink) { try { t.sink.abort(); } catch (_) {} }
-          this.finishState(t, 'error', 'Соединение прервано');
-        }
-      }
-    }
     this.setState('closed');
-    if (was) {
-      this.addReconnect();
-      if (!this.label) {
-        this.setNotice('Соединение потеряно. Пробуем переподключиться автоматически, передача продолжится с того же места.');
-        scheduleReconnect(this.code);
-      }
-    }
+    if (was) this.addReconnect();
     refreshBusy();
   }
 
-  // keep = true: карточку убираем (замена или «Подключиться снова»), передачи сохраняем для продолжения
-  destroy(keep) {
-    this.destroyed = true;
-    clearTimeout(this.timer);
-    if (keep) {
-      this.stashTransfers();
-    } else {
-      for (const t of this.inc.values()) {
-        if (FINAL_STATES.includes(t.state)) continue;
-        if (t.sink) { try { t.sink.abort(); } catch (_) {} }
-        t.state = 'cancelled';
-      }
-      for (const t of this.out.values()) if (!FINAL_STATES.includes(t.state)) { t.state = 'cancelled'; if (t.wake) t.wake(); }
-      if (this.peerId) resumeStore.delete(this.peerId);
-    }
+  destroy() {
     try { this.conn.close(); } catch (_) {}
+    clearTimeout(this.timer);
+    for (const t of this.inc.values()) if (t.sink && t.state === 'recv') { try { t.sink.abort(); } catch (_) {} }
     this.card.remove();
     if (links.get(this.code) === this) links.delete(this.code);
     refreshBusy();
-  }
-
-  // Принимаем передачи, оставшиеся от оборвавшегося соединения с тем же собеседником
-  adopt(saved) {
-    for (const [id, t] of saved.out) {
-      this.out.set(id, t);
-      t.owner = this;
-      this.list.prepend(t.row);
-    }
-    for (const [id, t] of saved.inc) {
-      this.inc.set(id, t);
-      t.owner = this;
-      this.list.prepend(t.row);
-    }
-    for (const t of this.out.values()) {
-      if (t.state !== 'paused') continue;
-      t.state = 'offered';
-      t.lastT = 0;
-      this.updateRow(t);
-      this.ctl({ t: 'offer', id: t.id, name: t.name, size: t.size });   // собеседник ответит, с какого байта продолжать
-    }
-    for (const t of this.inc.values()) {
-      if (t.state !== 'paused') continue;
-      t.state = t.prev === 'offer' ? 'offer' : 'accepted';
-      t.lastT = 0;
-      this.updateRow(t);
-    }
-    this.cur = null;
-    refreshBusy();
-  }
-
-  // Повторное предложение файла, который у нас уже есть в списке: сообщаем, с какого места продолжать
-  async resync(t) {
-    if (t.chain) { try { await t.chain; } catch (_) {} }   // дожидаемся, пока запишутся уже полученные данные
-    switch (t.state) {
-      case 'accepted':
-      case 'recv':
-        t.state = 'accepted';
-        this.updateRow(t);
-        this.ctl({ t: 'accept', id: t.id, offset: t.sink ? t.written : 0 });
-        break;
-      case 'done': this.ctl({ t: 'done', id: t.id }); break;
-      case 'rejected': this.ctl({ t: 'reject', id: t.id }); break;
-      case 'cancelled':
-      case 'error': this.ctl({ t: 'cancel', id: t.id }); break;
-      default: break;   // 'offer': ждём решения пользователя
-    }
   }
 
   /* ---------- строки со списком файлов ---------- */
@@ -678,7 +505,6 @@ class Link {
     $('.name span', r).textContent = t.name + ' · ' + fmtBytes(t.size);
     t.row = r;
     t.dir = dir;
-    t.owner = this;
     this.list.prepend(r);
   }
 
@@ -704,28 +530,26 @@ class Link {
 
     if (t.dir === 'out') {
       switch (t.state) {
-        case 'offered': text = 'Ждём, пока друг примет файл'; buttons = [this.btn('Отменить', 'ghost', () => t.owner.cancel(t))]; break;
-        case 'ready': text = 'В очереди на отправку'; buttons = [this.btn('Отменить', 'ghost', () => t.owner.cancel(t))]; break;
-        case 'send': text = this.progressText(t, done); buttons = [this.btn('Отменить', 'ghost', () => t.owner.cancel(t))]; break;
+        case 'offered': text = 'Ждём, пока друг примет файл'; buttons = [this.btn('Отменить', 'ghost', () => this.cancel(t))]; break;
+        case 'ready': text = 'В очереди на отправку'; buttons = [this.btn('Отменить', 'ghost', () => this.cancel(t))]; break;
+        case 'send': text = this.progressText(t, done); buttons = [this.btn('Отменить', 'ghost', () => this.cancel(t))]; break;
         case 'finishing': pct = 100; text = 'Завершаем…'; break;
         case 'done': pct = 100; text = 'Отправлено'; cls = 'done'; break;
         case 'rejected': text = 'Друг отклонил файл'; pct = 0; break;
         case 'cancelled': text = 'Отменено'; pct = 0; break;
-        case 'paused': text = 'Соединение прервано. Передача продолжится с того же места, когда связь восстановится (' + fmtBytes(done) + ' из ' + fmtBytes(t.size) + ')'; buttons = [this.btn('Отменить', 'ghost', () => t.owner.cancel(t))]; break;
         case 'error': text = 'Ошибка: ' + (t.err || 'неизвестная'); bad = true; break;
       }
     } else {
       switch (t.state) {
         case 'offer':
           text = 'Друг хочет отправить вам файл';
-          buttons = [this.btn('Принять', '', () => t.owner.accept(t)), this.btn('Отклонить', 'ghost', () => t.owner.reject(t))];
+          buttons = [this.btn('Принять', '', () => this.accept(t)), this.btn('Отклонить', 'ghost', () => this.reject(t))];
           break;
-        case 'accepted': text = 'Ожидаем начала передачи…'; buttons = [this.btn('Отменить', 'ghost', () => t.owner.cancel(t))]; break;
-        case 'recv': text = this.progressText(t, done); buttons = [this.btn('Отменить', 'ghost', () => t.owner.cancel(t))]; break;
+        case 'accepted': text = 'Ожидаем начала передачи…'; buttons = [this.btn('Отменить', 'ghost', () => this.cancel(t))]; break;
+        case 'recv': text = this.progressText(t, done); buttons = [this.btn('Отменить', 'ghost', () => this.cancel(t))]; break;
         case 'done': pct = 100; text = 'Получено и сохранено'; cls = 'done'; break;
         case 'rejected': text = 'Отклонено'; pct = 0; break;
         case 'cancelled': text = 'Отменено'; pct = 0; break;
-        case 'paused': text = 'Соединение прервано. Приём продолжится с того же места, когда связь восстановится (' + fmtBytes(done) + ' из ' + fmtBytes(t.size) + ')'; buttons = [this.btn('Отменить', 'ghost', () => t.owner.cancel(t))]; break;
         case 'error': text = 'Ошибка: ' + (t.err || 'неизвестная'); bad = true; break;
       }
     }
@@ -817,16 +641,13 @@ class Link {
     t.state = 'send';
     t.t0 = performance.now();
     this.updateRow(t);
-    let off = Math.min(Math.max(0, t.startOffset || 0), t.size);
-    t.sent = off;
-    t.acked = off;
-    t.lastT = 0;
-    this.ctl({ t: 'start', id: t.id, offset: off });
+    this.ctl({ t: 'start', id: t.id });
     const dc = this.conn.dataChannel;
     dc.bufferedAmountLowThreshold = LOW_WATER;
     let next = null;
     try {
-      if (off < t.size) next = t.file.slice(off, Math.min(off + CHUNK, t.size)).arrayBuffer();
+      let off = 0;
+      if (t.size > 0) next = t.file.slice(0, Math.min(CHUNK, t.size)).arrayBuffer();
       while (off < t.size) {
         const buf = await next;
         const n = off + buf.byteLength;
@@ -849,13 +670,8 @@ class Link {
       }
     } catch (e) {
       if (t.state === 'send') {
-        if (this.peerId && dc.readyState !== 'open') {
-          // связь оборвалась раньше, чем мы получили событие закрытия: откладываем передачу
-          this.stashTransfers();
-        } else {
-          this.ctl({ t: 'cancel', id: t.id });
-          this.finishState(t, 'error', e.message || String(e));
-        }
+        this.ctl({ t: 'cancel', id: t.id });
+        this.finishState(t, 'error', e.message || String(e));
       }
     } finally {
       if (next && next.catch) next.catch(() => {});
@@ -933,17 +749,9 @@ class Link {
   onCtl(m) {
     if (!m || typeof m.t !== 'string') return;
     switch (m.t) {
-      case 'hello': {
-        if (typeof m.id !== 'string' || !m.id) break;
-        this.peerId = m.id;
-        const saved = resumeStore.get(m.id);
-        if (saved && saved.out !== this.out) { resumeStore.delete(m.id); this.adopt(saved); }
-        break;
-      }
       case 'offer': {
         const size = Number(m.size);
-        if (typeof m.id === 'string' && this.inc.has(m.id)) { this.resync(this.inc.get(m.id)); return; }
-        if (typeof m.id !== 'string' || !Number.isFinite(size) || size < 0) return;
+        if (typeof m.id !== 'string' || !Number.isFinite(size) || size < 0 || this.inc.has(m.id)) return;
         const t = { id: m.id, name: cleanName(m.name), size, state: 'offer', recv: 0, written: 0, acked: 0 };
         this.inc.set(t.id, t);
         this.makeRow(t, 'in');
@@ -952,13 +760,7 @@ class Link {
       }
       case 'accept': {
         const t = this.out.get(m.id);
-        if (t && t.state === 'offered') {
-          const off = Number(m.offset);
-          t.startOffset = Number.isFinite(off) && off > 0 ? Math.min(off, t.size) : 0;
-          t.state = 'ready';
-          this.updateRow(t);
-          this.pump();
-        }
+        if (t && t.state === 'offered') { t.state = 'ready'; this.updateRow(t); this.pump(); }
         break;
       }
       case 'reject': {
@@ -969,23 +771,12 @@ class Link {
       case 'start': {
         const t = this.inc.get(m.id);
         if (!t || t.state !== 'accepted') { this.ctl({ t: 'cancel', id: m.id }); break; }
-        const off = Number(m.offset) || 0;
         this.cur = t;
-        if (t.sink) {
-          // продолжение прерванной передачи: пишем в тот же файл с того же места
-          if (off !== t.written) { this.fail(t, new Error('не совпало место продолжения')); break; }
-          t.state = 'recv';
-          t.recv = t.written;
-          t.acked = t.written;
-          this.updateRow(t);
-          break;
-        }
-        if (off !== 0) { this.fail(t, new Error('не совпало место продолжения')); break; }
         t.state = 'recv';
         t.recv = 0; t.written = 0; t.acked = 0;
         this.updateRow(t);
         t.chain = (async () => {
-          t.sink = await makeSink(t, () => t.owner.cancel(t));
+          t.sink = await makeSink(t, () => this.cancel(t));
         })().catch((e) => this.fail(t, e));
         break;
       }
@@ -1055,36 +846,24 @@ class Link {
   }
 }
 
-/* ================= Поиск друга через несколько серверов ================= */
+/* ================= Peer ================= */
 
-// Устройства находят друг друга через публичные серверы обмена сообщениями.
-// Сайт подключается ко ВСЕМ из них сразу и отправляет служебные сообщения во все,
-// поэтому достаточно, чтобы работал хотя бы один. Сообщения зашифрованы кодом друга,
-// сами файлы через эти серверы не идут.
+let peer = null;
 let myCode = '';
-let transports = [];
+let peerOpen = false;
 let pendingJoin = '';
-let hubTimer = null;
-const pendingOut = new Map();     // код друга -> исходящая попытка соединения
-const handledOffers = new Set();  // id уже обработанных приглашений
-const answering = new Set();      // коды друзей, чьи приглашения мы сейчас обрабатываем
-const seenMids = new Set();       // id уже обработанных сообщений (одно и то же приходит с нескольких серверов)
 
-function relayList() {
-  // Свои серверы (или тесты): ?mqtt=ws://host:9001,wss://...&ntfy=https://ntfy.example.com
+function iceOptions() {
+  const opts = { debug: 0, config: { iceServers: ICE_SERVERS } };
+  // Свой сигнальный сервер: ?ph=host&pp=9000&pa=/&ps=0
   const q = new URLSearchParams(location.search);
-  if (q.get('mqtt') || q.get('ntfy')) {
-    const l = [];
-    (q.get('mqtt') || '').split(',').filter(Boolean).forEach((u, i) => l.push({ type: 'mqtt', url: u, name: 'MQTT ' + (i + 1) }));
-    (q.get('ntfy') || '').split(',').filter(Boolean).forEach((u, i) => l.push({ type: 'ntfy', url: u, name: 'ntfy ' + (i + 1) }));
-    return l;
+  if (q.get('ph')) {
+    opts.host = q.get('ph');
+    opts.port = Number(q.get('pp')) || 443;
+    opts.path = q.get('pa') || '/';
+    opts.secure = q.get('ps') !== '0';
   }
-  return RELAYS;
-}
-
-function iceServers() {
-  // ?noice=1 отключает STUN (нужно только для тестов)
-  return new URLSearchParams(location.search).get('noice') ? [] : ICE_SERVERS;
+  return opts;
 }
 
 function myLinkText() {
@@ -1105,642 +884,82 @@ function renderMe() {
   } catch (_) { $('#qr').hidden = true; }
 }
 
-/* ---------- шифрование служебных сообщений ---------- */
+function startPeer(code) {
+  myCode = code;
+  peerOpen = false;
+  setStatus('', 'Подключаюсь к серверу…');
+  renderMe();
+  peer = new Peer(ID_PREFIX + code, iceOptions());
 
-const te = new TextEncoder();
-const td = new TextDecoder();
-const topicCache = new Map();
-const keyCache = new Map();
-
-async function sha256(str) {
-  return new Uint8Array(await crypto.subtle.digest('SHA-256', te.encode(str)));
-}
-async function topicOf(code) {
-  if (!topicCache.has(code)) {
-    const h = await sha256('sfx1-topic:' + code);
-    topicCache.set(code, 'sfx1-' + Array.from(h.slice(0, 12), (x) => x.toString(16).padStart(2, '0')).join(''));
-  }
-  return topicCache.get(code);
-}
-async function keyOf(code) {
-  if (!keyCache.has(code)) {
-    keyCache.set(code, await crypto.subtle.importKey('raw', await sha256('sfx1-key:' + code), 'AES-GCM', false, ['encrypt', 'decrypt']));
-  }
-  return keyCache.get(code);
-}
-async function seal(code, obj) {
-  let data = te.encode(JSON.stringify(obj));
-  let flag = 0;
-  if (typeof CompressionStream === 'function') {
-    try { data = await streamBytes(new CompressionStream('deflate-raw'), data); flag = 1; } catch (_) { data = te.encode(JSON.stringify(obj)); flag = 0; }
-  }
-  const plain = new Uint8Array(1 + data.length);
-  plain[0] = flag;
-  plain.set(data, 1);
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await keyOf(code), plain));
-  const out = new Uint8Array(12 + ct.length);
-  out.set(iv);
-  out.set(ct, 12);
-  return b64u.enc(out);
-}
-async function unseal(code, text) {
-  try {
-    const raw = b64u.dec(String(text).trim());
-    const plain = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: raw.slice(0, 12) }, await keyOf(code), raw.slice(12)));
-    let data = plain.slice(1);
-    if (plain[0] === 1) data = await streamBytes(new DecompressionStream('deflate-raw'), data);
-    return JSON.parse(td.decode(data));
-  } catch (_) { return null; }
-}
-
-/* ---------- транспорты: MQTT и ntfy ---------- */
-
-function mqttTransport(cfg) {
-  const t = { name: cfg.name, ok: false, topics: new Set() };
-  if (typeof mqtt === 'undefined') return t;
-  const client = mqtt.connect(cfg.url, {
-    clientId: 'sfx_' + Math.random().toString(16).slice(2, 12),
-    protocolVersion: 4, clean: true, keepalive: 30,
-    reconnectPeriod: 4000, connectTimeout: 10000,
-  });
-  client.on('connect', () => { t.ok = true; t.topics.forEach((tp) => client.subscribe(tp, { qos: 0 })); hubState(); });
-  client.on('close', () => { t.ok = false; hubState(); });
-  client.on('error', () => {});
-  client.on('message', (topic, payload) => onRaw(td.decode(payload)));
-  t.subscribe = (tp) => { t.topics.add(tp); if (t.ok) client.subscribe(tp, { qos: 0 }); };
-  t.publish = (tp, text) => { if (t.ok) client.publish(tp, text, { qos: 0 }); };
-  return t;
-}
-
-function ntfyTransport(cfg) {
-  const t = { name: cfg.name, ok: false, topics: new Set(), live: new Set() };
-  const wsBase = cfg.url.replace(/^http/, 'ws');
-  function listen(tp) {
-    let fails = 0;
-    const connect = () => {
-      let ws;
-      try { ws = new WebSocket(wsBase + '/' + tp + '/ws'); } catch (_) { return; }
-      ws.onmessage = (e) => {
-        let m;
-        try { m = JSON.parse(e.data); } catch (_) { return; }
-        if (m.event === 'open') { fails = 0; t.live.add(tp); t.ok = true; hubState(); }
-        else if (m.event === 'message' && typeof m.message === 'string') onRaw(m.message);
-      };
-      ws.onclose = () => {
-        t.live.delete(tp);
-        t.ok = t.live.size > 0;
-        hubState();
-        fails++;
-        setTimeout(connect, Math.min(30000, 2000 * fails));
-      };
-      ws.onerror = () => { try { ws.close(); } catch (_) {} };
-    };
-    connect();
-  }
-  t.subscribe = (tp) => { if (!t.topics.has(tp)) { t.topics.add(tp); listen(tp); } };
-  t.publish = (tp, text) => { fetch(cfg.url + '/' + tp, { method: 'POST', body: text }).catch(() => {}); };
-  return t;
-}
-
-function hubOnline() { return transports.some((t) => t.ok); }
-
-function hubState() {
-  const ok = transports.filter((t) => t.ok);
-  if (ok.length) {
-    clearTimeout(hubTimer);
-    hubTimer = null;
-    setStatus('ok', `Онлайн (серверов на связи: ${ok.length} из ${transports.length}). Друзья могут подключаться по вашей ссылке.`);
+  peer.on('open', () => {
+    peerOpen = true;
+    saveCode(myCode);
+    setStatus('ok', 'Онлайн: друзья могут подключаться по вашей ссылке');
     if (pendingJoin) { const c = pendingJoin; pendingJoin = ''; connectTo(c); }
-  } else {
-    if (hubTimer) return;   // таймер уже запущен, не перезапускаем при каждой попытке переподключения
-    setStatus('', 'Подключаюсь к серверам…');
-    hubTimer = setTimeout(() => {
-      hubTimer = null;
-      if (hubOnline()) return;
-      setStatus('err', 'Не удалось связаться ни с одним сервером. Подключение по ссылке не сработает, используйте «Подключение без сервера» ниже.');
-      $('#manual').open = true;
-    }, 10000);
-  }
+  });
+
+  peer.on('connection', (conn) => {
+    const code = conn.peer.startsWith(ID_PREFIX) ? normCode(conn.peer.slice(ID_PREFIX.length)) : '';
+    if (!code) { conn.close(); return; }
+    addLink(conn, code);
+  });
+
+  peer.on('disconnected', () => {
+    peerOpen = false;
+    setStatus('', 'Связь с сервером потеряна, переподключаюсь…');
+    setTimeout(() => { if (peer && !peer.destroyed && peer.disconnected) peer.reconnect(); }, 1500);
+  });
+
+  peer.on('error', (err) => {
+    console.warn('peer error', err.type, err);
+    switch (err.type) {
+      case 'unavailable-id': {
+        // код занят (например, открыта вторая вкладка), берём другой
+        peer.destroy();
+        startPeer(genCode());
+        break;
+      }
+      case 'peer-unavailable': {
+        const m = /sfx-([A-Z0-9]{6})/.exec(err.message || '');
+        const code = m ? m[1] : '';
+        const l = links.get(code);
+        if (l && !l.isOpen) l.destroy();
+        showMsg(`Устройство с кодом ${code || ''} не найдено. Проверьте код и убедитесь, что друг открыл сайт и не закрыл вкладку.`, true);
+        break;
+      }
+      case 'network':
+      case 'server-error':
+      case 'socket-error':
+      case 'socket-closed':
+        if (!peerOpen) {
+          setStatus('err', 'Нет связи с сервером. Пробую снова…');
+          setTimeout(() => { if (peer && !peer.destroyed && !peerOpen) { const c = myCode; peer.destroy(); startPeer(c); } }, 4000);
+        }
+        break;
+      default:
+        break;
+    }
+  });
 }
 
-/* ---------- служебные сообщения ---------- */
-
-async function signalTo(code, obj, delays, alive) {
-  obj.mid = uid();
-  const topic = await topicOf(code);
-  const text = await seal(code, obj);
-  delays.forEach((d) => setTimeout(() => {
-    if (alive && !alive()) return;
-    transports.forEach((t) => { try { t.publish(topic, text); } catch (_) {} });
-  }, d));
-}
-
-async function onRaw(text) {
-  const env = await unseal(myCode, text);
-  if (!env || typeof env.t !== 'string' || typeof env.mid !== 'string') return;
-  if (seenMids.has(env.mid)) return;
-  seenMids.add(env.mid);
-  if (seenMids.size > 500) seenMids.delete(seenMids.values().next().value);
-  try {
-    if (env.t === 'offer') await handleOffer(env);
-    else if (env.t === 'answer') await handleAnswer(env);
-  } catch (e) { console.warn('signal error', e); }
-}
-
-function newPC() { return new RTCPeerConnection({ iceServers: iceServers() }); }
-
-function addLink(conn, code, label) {
+function addLink(conn, code) {
   const old = links.get(code);
-  if (old) old.destroy(true);
-  const l = new Link(conn, code, label);
+  if (old) old.destroy();
+  const l = new Link(conn, code);
   links.set(code, l);
   showMsg('');
   return l;
 }
 
-function failOut(code, out, text) {
-  if (pendingOut.get(code) !== out) return;
-  pendingOut.delete(code);
-  clearTimeout(out.timer);
-  try { out.pc.close(); } catch (_) {}
-  if (text && !out.silent) showMsg(text, true);
-}
-
-// После обрыва пробуем переподключиться сами, с нарастающей паузой (до 15 минут)
-const reconnecting = new Map();
-function scheduleReconnect(code) {
-  if (reconnecting.has(code)) return;
-  const st = { n: 0, since: Date.now() };
-  reconnecting.set(code, st);
-  const attempt = () => {
-    const l = links.get(code);
-    if ((l && l.isOpen) || Date.now() - st.since > 15 * 60 * 1000 || (l && l.destroyed) || !l) {
-      reconnecting.delete(code);
-      return;
-    }
-    st.n++;
-    connectTo(code, true);
-    setTimeout(attempt, Math.min(60000, 5000 * st.n));
-  };
-  setTimeout(attempt, 3000);
-}
-
-async function handleOffer(env) {
-  const from = env.from;
-  if (!/^[A-Z2-9]{6}$/.test(from) || from === myCode || typeof env.sdp !== 'string' || typeof env.id !== 'string') return;
-  if (handledOffers.has(env.id)) return;
-  handledOffers.add(env.id);
-  const cur = links.get(from);
-  if (cur && cur.isOpen && Date.now() - (cur.openedAt || 0) < 8000) return;   // одновременные попытки: соединение уже есть
-  const mine = pendingOut.get(from);
-  if (mine) {
-    if (myCode < from) return;              // мы оба приглашаем друг друга: побеждает меньший код
-    failOut(from, mine, '');                // свою попытку бросаем и отвечаем на чужую
-  }
-  const pc = newPC();
-  let done = false;
-  answering.add(from);
-  const timer = setTimeout(() => { answering.delete(from); if (!done) { try { pc.close(); } catch (_) {} } }, 40000);
-  pc.addEventListener('datachannel', (e) => {
-    const dc = e.channel;
-    const opened = () => {
-      if (done) return;
-      done = true;
-      clearTimeout(timer);
-      answering.delete(from);
-      addLink(new RawConn(pc, dc), from);
-    };
-    if (dc.readyState === 'open') opened(); else dc.addEventListener('open', opened);
-  });
-  await pc.setRemoteDescription({ type: 'offer', sdp: env.sdp });
-  await pc.setLocalDescription(await pc.createAnswer());
-  await waitGather(pc, 5000);
-  signalTo(from, { t: 'answer', id: env.id, from: myCode, sdp: pc.localDescription.sdp }, [0, 2500, 6000, 11000], () => !done && pc.connectionState !== 'closed');
-}
-
-async function handleAnswer(env) {
-  if (typeof env.sdp !== 'string') return;
-  for (const [code, out] of pendingOut) {
-    if (out.id === env.id && !out.answered) {
-      out.answered = true;
-      await out.pc.setRemoteDescription({ type: 'answer', sdp: env.sdp });
-      return;
-    }
-  }
-}
-
-async function connectTo(code, silent) {
+function connectTo(code) {
   if (!code) return;
   if (code === myCode) { showMsg('Это ваш собственный код. Введите код друга.', true); return; }
+  if (!peerOpen) { pendingJoin = code; return; }
   const ex = links.get(code);
-  if (ex && ex.isOpen) { ex.card.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
-  if (pendingOut.has(code) || answering.has(code)) return;
-  if (!hubOnline()) { if (!silent) { pendingJoin = code; showMsg('Жду подключения к серверам…'); } return; }
-  if (!silent) showMsg('Ищу устройство ' + code + '…');
-  const id = uid();
-  const pc = newPC();
-  const dc = pc.createDataChannel('data');
-  const out = { id, pc, dc, answered: false, timer: null, silent: !!silent };
-  pendingOut.set(code, out);
-  dc.addEventListener('open', () => {
-    if (pendingOut.get(code) !== out) return;
-    clearTimeout(out.timer);
-    pendingOut.delete(code);
-    reconnecting.delete(code);
-    addLink(new RawConn(pc, dc), code);
-  });
-  pc.addEventListener('connectionstatechange', () => {
-    if (pc.connectionState === 'failed') {
-      failOut(code, out, 'Не удалось установить прямое соединение. Так бывает в мобильных сетях или из-за строгих настроек роутера. Попробуйте другую сеть или «Подключение без сервера».');
-    }
-  });
-  out.timer = setTimeout(() => {
-    failOut(code, out, `Устройство ${code} не отвечает. Проверьте код и убедитесь, что друг открыл сайт и не закрыл вкладку.`);
-  }, 30000);
-  await pc.setLocalDescription(await pc.createOffer());
-  await waitGather(pc, 5000);
-  signalTo(code, { t: 'offer', id, from: myCode, sdp: pc.localDescription.sdp }, [0, 3000, 7000, 12000], () => pendingOut.get(code) === out && !out.answered);
-}
-
-// Если этот код уже открыт в другой вкладке, берём новый, чтобы вкладки не мешали друг другу
-function claimCode(code) {
-  return new Promise((resolve) => {
-    if (typeof BroadcastChannel === 'undefined') return resolve(code);
-    const bc = new BroadcastChannel('sfx-tabs');
-    let taken = false;
-    bc.onmessage = (e) => {
-      const m = e.data || {};
-      if (m.code !== code) return;
-      if (m.t === 'hello') bc.postMessage({ t: 'taken', code });
-      if (m.t === 'taken') taken = true;
-    };
-    bc.postMessage({ t: 'hello', code });
-    setTimeout(() => resolve(taken ? genCode() : code), 250);
-  });
-}
-
-async function startHub(code) {
-  myCode = code;
-  renderMe();
-  saveCode(code);
-  setStatus('', 'Подключаюсь к серверам…');
-  const topic = await topicOf(code);
-  transports = relayList().map((cfg) => (cfg.type === 'mqtt' ? mqttTransport(cfg) : ntfyTransport(cfg)));
-  transports.forEach((t) => t.subscribe && t.subscribe(topic));
-  hubState();
-}
-
-/* ================= Подключение без сервера (обмен кодами) ================= */
-
-// Обёртка над RTCDataChannel с тем же интерфейсом, что нужен остальному коду,
-// чтобы весь остальной код (класс Link) работал без изменений.
-class RawConn {
-  constructor(pc, dc) {
-    this.peerConnection = pc;
-    this.dataChannel = dc;
-    this.handlers = {};
-    this.closedEmitted = false;
-    dc.binaryType = 'arraybuffer';
-    dc.onmessage = (e) => this.emit('data', e.data);
-    dc.onclose = () => this.emitClose();
-    dc.onerror = (e) => this.emit('error', e);
-    pc.addEventListener('connectionstatechange', () => {
-      if (pc.connectionState === 'failed' || pc.connectionState === 'closed') this.emitClose();
-    });
-    setTimeout(() => this.emit('open'), 0);
-  }
-  on(ev, cb) { (this.handlers[ev] = this.handlers[ev] || []).push(cb); }
-  emit(ev, arg) { (this.handlers[ev] || []).forEach((f) => f(arg)); }
-  emitClose() { if (!this.closedEmitted) { this.closedEmitted = true; this.emit('close'); } }
-  send(d) { this.dataChannel.send(d); }
-  close() {
-    try { this.dataChannel.close(); } catch (_) {}
-    try { this.peerConnection.close(); } catch (_) {}
-    this.emitClose();
-  }
-}
-
-const b64u = {
-  enc(bytes) {
-    let s = '';
-    for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
-    return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  },
-  dec(str) {
-    str = str.replace(/-/g, '+').replace(/_/g, '/');
-    while (str.length % 4) str += '=';
-    const s = atob(str);
-    const a = new Uint8Array(s.length);
-    for (let i = 0; i < s.length; i++) a[i] = s.charCodeAt(i);
-    return a;
-  },
-};
-async function streamBytes(stream, bytes) {
-  const w = stream.writable.getWriter();
-  w.write(bytes);
-  w.close();
-  return new Uint8Array(await new Response(stream.readable).arrayBuffer());
-}
-// Компактный код (v2): вместо всего описания сессии храним только нужное
-// (логин и пароль ICE, отпечаток ключа, адреса), остальное восстанавливается на другой стороне.
-function ipBytes(ip) {
-  const m = /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/.exec(ip);
-  return m ? [+m[1], +m[2], +m[3], +m[4]] : null;
-}
-function compactSdp(sdp) {
-  const lines = sdp.split(/\r?\n/);
-  const pick = (re) => { for (const l of lines) { const m = re.exec(l); if (m) return m[1]; } return null; };
-  const ufrag = pick(/^a=ice-ufrag:(\S+)/);
-  const pwd = pick(/^a=ice-pwd:(\S+)/);
-  const fp = pick(/^a=fingerprint:sha-256 ([0-9A-Fa-f:]+)/);
-  const setup = pick(/^a=setup:(\w+)/);
-  if (!ufrag || !pwd || !fp || !setup) throw new Error('unsupported');
-  const fb = fp.split(':').map((h) => parseInt(h, 16));
-  if (fb.length !== 32 || fb.some((x) => !(x >= 0 && x <= 255))) throw new Error('unsupported');
-  const out = [2, setup === 'active' ? 1 : 0];
-  const pushStr = (str) => { const b = te.encode(str); out.push(b.length); b.forEach((x) => out.push(x)); };
-  pushStr(ufrag);
-  pushStr(pwd);
-  fb.forEach((x) => out.push(x));
-  const cands = [];
-  for (const l of lines) {
-    const m = /^a=candidate:\S+ 1 udp \d+ (\S+) (\d+) typ (host|srflx|relay)/.exec(l);
-    if (m && !/^fe80/i.test(m[1])) cands.push({ ip: m[1], port: +m[2], type: m[3] });
-  }
-  if (cands.length > 12) cands.length = 12;
-  out.push(cands.length);
-  for (const c of cands) {
-    const ipb = ipBytes(c.ip);
-    out.push({ host: 0, srflx: 1, relay: 2 }[c.type] | (ipb ? 0 : 4), c.port >> 8, c.port & 255);
-    if (ipb) ipb.forEach((x) => out.push(x)); else pushStr(c.ip);
-  }
-  return new Uint8Array(out);
-}
-function expandSdp(bytes) {
-  let i = 0;
-  if (bytes[i++] !== 2) throw new Error('bad version');
-  const active = bytes[i++] === 1;
-  const str = () => { const n = bytes[i++]; const v = td.decode(bytes.slice(i, i + n)); i += n; return v; };
-  const ufrag = str();
-  const pwd = str();
-  const fp = Array.from(bytes.slice(i, i + 32), (x) => x.toString(16).toUpperCase().padStart(2, '0')).join(':');
-  i += 32;
-  const n = bytes[i++];
-  const cl = [];
-  for (let k = 0; k < n; k++) {
-    const f = bytes[i++];
-    const port = (bytes[i] << 8) | bytes[i + 1];
-    i += 2;
-    const type = ['host', 'srflx', 'relay'][f & 3];
-    let ip;
-    if (f & 4) ip = str();
-    else { ip = Array.from(bytes.slice(i, i + 4)).join('.'); i += 4; }
-    const pref = { host: 126, srflx: 100, relay: 0 }[type];
-    const pri = pref * 16777216 + (65535 - k) * 256 + 255;
-    cl.push(`a=candidate:${k + 1} 1 udp ${pri} ${ip} ${port} typ ${type}` + (type === 'host' ? '' : ' raddr 0.0.0.0 rport 0'));
-  }
-  if (i > bytes.length) throw new Error('truncated');
-  return [
-    'v=0', 'o=- 4611731400430051336 2 IN IP4 127.0.0.1', 's=-', 't=0 0', 'a=group:BUNDLE 0', 'a=msid-semantic: WMS',
-    'm=application 9 UDP/DTLS/SCTP webrtc-datachannel', 'c=IN IP4 0.0.0.0',
-    'a=ice-ufrag:' + ufrag, 'a=ice-pwd:' + pwd, 'a=fingerprint:sha-256 ' + fp,
-    'a=setup:' + (active ? 'active' : 'actpass'), 'a=mid:0', 'a=sctp-port:5000', 'a=max-message-size:262144',
-    ...cl, 'a=end-of-candidates',
-  ].join('\r\n') + '\r\n';
-}
-
-async function packSdp(kind, sdp, full) {
-  if (!full) {
-    try { return (kind === 'offer' ? 'SFO2.' : 'SFA2.') + b64u.enc(compactSdp(sdp)); }
-    catch (_) { /* нестандартное описание: используем полный код */ }
-  }
-  const raw = new TextEncoder().encode(sdp);
-  let tag = 'p', body = raw;
-  if (typeof CompressionStream === 'function') {
-    try { body = await streamBytes(new CompressionStream('deflate-raw'), raw); tag = 'z'; }
-    catch (_) { body = raw; tag = 'p'; }
-  }
-  return (kind === 'offer' ? 'SFO1.' : 'SFA1.') + tag + b64u.enc(body);
-}
-async function unpackSdp(text) {
-  const m = /(SF[OA])([12])\.([A-Za-z0-9_-]+)/.exec(String(text || ''));
-  if (!m) throw new Error('Код не распознан. Скопируйте его целиком.');
-  const kind = m[1] === 'SFO' ? 'offer' : 'answer';
-  const ver = Number(m[2]);
-  try {
-    if (ver === 2) return { kind, ver, sdp: expandSdp(b64u.dec(m[3])) };
-    const tag = m[3][0];
-    let raw = b64u.dec(m[3].slice(1));
-    if (tag === 'z') {
-      if (typeof DecompressionStream !== 'function') throw new Error('Этот браузер не поддерживает такой код. Обновите браузер.');
-      raw = await streamBytes(new DecompressionStream('deflate-raw'), raw);
-    }
-    return { kind, ver, sdp: new TextDecoder().decode(raw) };
-  } catch (e) {
-    if (/браузер/.test(e.message)) throw e;
-    throw new Error('Код повреждён. Скопируйте его целиком, без пробелов и переносов.');
-  }
-}
-function renderQr(box, text, level) {
-  try {
-    const qr = qrcode(0, level || 'L');
-    qr.addData(text);
-    qr.make();
-    box.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
-    box.hidden = false;
-  } catch (_) { box.hidden = true; }
-}
-function waitGather(pc, ms) {
-  return new Promise((res) => {
-    if (pc.iceGatheringState === 'complete') return res();
-    const done = () => { clearTimeout(t); pc.removeEventListener('icegatheringstatechange', chk); res(); };
-    const chk = () => { if (pc.iceGatheringState === 'complete') done(); };
-    const t = setTimeout(done, ms);
-    pc.addEventListener('icegatheringstatechange', chk);
-  });
-}
-
-let manual = null;   // { pc, dc, role }
-let manualN = 0;
-
-function manualStatus(text, isErr) {
-  const n = $('#manualStatus');
-  n.textContent = text || '';
-  n.hidden = !text;
-  n.style.color = isErr ? 'var(--err)' : '';
-}
-function resetManual() {
-  if (manual) {
-    try { manual.pc.close(); } catch (_) {}
-    manual = null;
-  }
-}
-function manualPeer(role) {
-  resetManual();
-  const pc = new RTCPeerConnection({ iceServers: iceServers() });
-  manual = { pc, dc: null, role };
-  const m = manual;
-  const opened = (dc) => {
-    if (manual !== m) return;
-    const conn = new RawConn(pc, dc);
-    manual = null;
-    manualN++;
-    addLink(conn, 'M' + manualN, 'Прямое подключение ' + manualN);
-    manualStatus('Соединено. Можно передавать файлы.');
-    $('#offerBox').hidden = true;
-    $('#answerBox').hidden = true;
-    $('#pasteCode').value = '';
-  };
-  const watch = (dc) => {
-    m.dc = dc;
-    dc.binaryType = 'arraybuffer';
-    if (dc.readyState === 'open') opened(dc);
-    else dc.addEventListener('open', () => opened(dc));
-  };
-  pc.addEventListener('connectionstatechange', () => {
-    if (manual === m && pc.connectionState === 'failed') {
-      manualStatus('Не удалось установить прямое соединение. Если вы в разных сетях, возможно, недоступен STUN-сервер (см. README). Попробуйте ещё раз или подключитесь из одной сети Wi-Fi.', true);
-    }
-  });
-  if (role === 'offer') watch(pc.createDataChannel('data'));
-  else pc.addEventListener('datachannel', (e) => watch(e.channel));
-  return pc;
-}
-function noStunHint(sdp) {
-  return /typ srflx/.test(sdp) ? '' : ' Внимание: внешний адрес получить не удалось (STUN недоступен), поэтому соединение возможно только внутри одной сети.';
-}
-
-async function manualCreateOffer() {
-  const btn = $('#mkOffer');
-  btn.disabled = true;
-  manualStatus('Готовлю приглашение…');
-  try {
-    const pc = manualPeer('offer');
-    await pc.setLocalDescription(await pc.createOffer());
-    await waitGather(pc, 6000);
-    const sdp = pc.localDescription.sdp;
-    const code = await packSdp('offer', sdp, $('#fullCode').checked);
-    const link = location.origin + location.pathname + '#' + code;
-    $('#offerCode').value = link;
-    renderQr($('#offerQr'), link);
-    $('#offerBox').hidden = false;
-    manualStatus('Приглашение готово. Отправьте его другу, затем вставьте ответ в шаге 2.' + noStunHint(sdp));
-  } catch (e) {
-    manualStatus('Ошибка: ' + (e.message || e), true);
-  } finally {
-    btn.disabled = false;
-  }
-}
-
-async function manualApply(text) {
-  const btn = $('#applyCode');
-  btn.disabled = true;
-  try {
-    const { kind, ver, sdp } = await unpackSdp(text);
-    if (kind === 'offer') {
-      manualStatus('Создаю ответ…');
-      const pc = manualPeer('answer');
-      await pc.setRemoteDescription({ type: 'offer', sdp });
-      await pc.setLocalDescription(await pc.createAnswer());
-      await waitGather(pc, 6000);
-      const mine = pc.localDescription.sdp;
-      const answer = await packSdp('answer', mine, ver === 1);
-      $('#answerCode').value = answer;
-      renderQr($('#answerQr'), answer);
-      $('#answerBox').hidden = false;
-      manualStatus('Ответ готов. Отправьте его тому, кто прислал приглашение. Как только он его применит, соединение установится.' + noStunHint(mine));
-    } else {
-      if (!manual || manual.role !== 'offer' || manual.pc.signalingState !== 'have-local-offer') {
-        throw new Error('Сначала создайте приглашение в шаге 1 (и не обновляйте страницу), затем вставляйте ответ.');
-      }
-      manualStatus('Соединяюсь…');
-      await manual.pc.setRemoteDescription({ type: 'answer', sdp });
-    }
-  } catch (e) {
-    manualStatus('Ошибка: ' + (e.message || e), true);
-  } finally {
-    btn.disabled = false;
-  }
-}
-
-async function copyText(text, btn, label) {
-  try { await navigator.clipboard.writeText(text); }
-  catch (_) {
-    const ta = el('textarea');
-    ta.value = text;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    ta.remove();
-  }
-  if (btn) { const o = btn.textContent; btn.textContent = 'Скопировано'; setTimeout(() => { btn.textContent = o; }, 1500); }
-}
-
-$('#mkOffer').addEventListener('click', manualCreateOffer);
-$('#applyCode').addEventListener('click', () => manualApply($('#pasteCode').value));
-$('#copyOfferLink').addEventListener('click', (e) => copyText($('#offerCode').value, e.target));
-$('#copyOfferCode').addEventListener('click', (e) => {
-  const v = $('#offerCode').value;
-  const i = v.indexOf('#');
-  copyText(i >= 0 ? v.slice(i + 1) : v, e.target);
-});
-$('#copyAnswer').addEventListener('click', (e) => copyText($('#answerCode').value, e.target));
-
-let scanStream = null;
-let scanTimer = null;
-function stopScan() {
-  clearInterval(scanTimer);
-  scanTimer = null;
-  if (scanStream) { scanStream.getTracks().forEach((t) => t.stop()); scanStream = null; }
-  $('#scanOverlay').hidden = true;
-}
-async function startScan() {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    manualStatus('Камера недоступна: откройте сайт по HTTPS в современном браузере.', true);
-    return;
-  }
-  if (typeof jsQR === 'undefined') { manualStatus('Не загрузилась библиотека сканера QR.', true); return; }
-  try {
-    scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
-  } catch (e) {
-    manualStatus('Нет доступа к камере: ' + (e.message || e.name) + '. Разрешите доступ в настройках браузера.', true);
-    return;
-  }
-  const v = $('#scanVideo');
-  v.srcObject = scanStream;
-  $('#scanOverlay').hidden = false;
-  try { await v.play(); } catch (_) {}
-  const cv = document.createElement('canvas');
-  const cx = cv.getContext('2d', { willReadFrequently: true });
-  scanTimer = setInterval(() => {
-    if (!v.videoWidth) return;
-    const k = Math.min(1, 960 / Math.max(v.videoWidth, v.videoHeight));
-    cv.width = Math.round(v.videoWidth * k);
-    cv.height = Math.round(v.videoHeight * k);
-    cx.drawImage(v, 0, 0, cv.width, cv.height);
-    const img = cx.getImageData(0, 0, cv.width, cv.height);
-    const r = jsQR(img.data, img.width, img.height, { inversionAttempts: 'attemptBoth' });
-    if (r && /SF[OA][12]\./.test(r.data)) {
-      stopScan();
-      $('#pasteCode').value = r.data;
-      manualApply(r.data);
-    }
-  }, 200);
-}
-$('#scanBtn').addEventListener('click', startScan);
-$('#scanCancel').addEventListener('click', stopScan);
-
-function manualFromHash() {
-  const h = decodeURIComponent(location.hash.slice(1));
-  if (/^SFO[12]\./.test(h)) {
-    $('#manual').open = true;
-    $('#pasteCode').value = h;
-    history.replaceState(null, '', location.pathname + location.search);
-    manualApply(h);
-    return true;
-  }
-  return false;
+  if (ex && ex.state !== 'closed') { ex.card.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+  showMsg('');
+  const conn = peer.connect(ID_PREFIX + code, { serialization: 'raw', reliable: true });
+  addLink(conn, code);
 }
 
 /* ================= Запуск ================= */
@@ -1764,19 +983,16 @@ $('#joinForm').addEventListener('submit', (e) => {
 });
 
 window.addEventListener('hashchange', () => {
-  if (manualFromHash()) return;
   const c = normCode(location.hash);
   if (c && c !== myCode) connectTo(c);
 });
 
 renderModeInfo();
-const openedWithOffer = manualFromHash();
 {
-  const fromHash = openedWithOffer ? '' : normCode(location.hash);
-  claimCode(loadCode()).then((mine) => {
-    if (fromHash && fromHash !== mine) pendingJoin = fromHash;
-    startHub(mine);
-  });
+  const fromHash = normCode(location.hash);
+  const mine = loadCode();
+  if (fromHash && fromHash !== mine) pendingJoin = fromHash;
+  startPeer(mine);
 }
 </script>
 <noscript>Для работы сайта нужен JavaScript.</noscript>
