@@ -53,8 +53,8 @@
   .hint { color: var(--muted); font-size: 14px; margin: 12px 0 0; }
   #qr { width: 132px; background: #fff; padding: 6px; border-radius: 10px; border: 1px solid var(--line); }
   #qr svg { display: block; width: 100%; height: auto; }
-  .status { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); margin-top: 12px; }
-  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--warn); }
+  .status { display: inline-flex; align-items: flex-start; gap: 8px; font-size: 14px; color: var(--muted); margin-top: 12px; }
+  .dot { flex: none; width: 9px; height: 9px; margin-top: 7px; border-radius: 50%; background: var(--warn); }
   .dot.ok { background: var(--ok); } .dot.err { background: var(--err); }
   #msg { margin: 0 0 14px; padding: 12px 14px; border-radius: 12px; background: var(--accent-soft); font-size: 14px; }
   #msg.err { background: color-mix(in srgb, var(--err) 14%, var(--card)); }
@@ -85,6 +85,15 @@
   .row.bad .bar i { background: var(--err); }
   .meta { font-size: 13px; color: var(--muted); }
   .meta.warn { color: var(--warn); }
+  textarea {
+    width: 100%; min-height: 84px; resize: vertical; padding: 10px 12px; font: 13px/1.4 ui-monospace, Menlo, Consolas, monospace;
+    color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; word-break: break-all;
+  }
+  textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  details.card > summary { cursor: pointer; font-weight: 600; }
+  details.card[open] > summary { margin-bottom: 10px; }
+  .step { margin-top: 14px; }
+  .step .row-inline { margin-top: 8px; flex-wrap: wrap; }
   .foot { margin-top: 26px; color: var(--muted); font-size: 13px; }
   .foot p { margin: 6px 0; }
   @media (max-width: 520px) {
@@ -124,6 +133,36 @@
       <button type="submit">Подключиться</button>
     </form>
   </section>
+
+  <details class="card" id="manual">
+    <summary>Подключение без сервера (если обычное не работает)</summary>
+    <p class="hint" style="margin-top:0">Работает даже тогда, когда сервер сигналов недоступен. Вы обмениваетесь двумя короткими кодами через любой мессенджер, после чего файлы идут напрямую. Занимает около минуты.</p>
+
+    <div class="step">
+      <div class="label">Шаг 1. Тот, кто начинает, создаёт приглашение</div>
+      <button type="button" id="mkOffer">Создать приглашение</button>
+      <div id="offerBox" hidden>
+        <p class="hint">Отправьте другу эту ссылку (или код). Друг откроет её, ему покажется ответ, который нужно прислать вам обратно.</p>
+        <textarea id="offerCode" readonly></textarea>
+        <div class="row-inline">
+          <button type="button" class="ghost small" id="copyOfferLink">Копировать ссылку</button>
+          <button type="button" class="ghost small" id="copyOfferCode">Копировать код</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="label">Шаг 2. Вставьте то, что прислал друг (приглашение или ответ)</div>
+      <textarea id="pasteCode" placeholder="Вставьте сюда код или ссылку, которая начинается с SFO1. или SFA1."></textarea>
+      <div class="row-inline"><button type="button" id="applyCode">Применить</button></div>
+      <div id="answerBox" hidden>
+        <p class="hint">Отправьте этот ответ тому, кто прислал приглашение.</p>
+        <textarea id="answerCode" readonly></textarea>
+        <div class="row-inline"><button type="button" class="ghost small" id="copyAnswer">Копировать ответ</button></div>
+      </div>
+    </div>
+    <div class="notice" id="manualStatus" hidden></div>
+  </details>
 
   <div id="peers"></div>
 
@@ -362,9 +401,10 @@ function waitLow(dc) {
 }
 
 class Link {
-  constructor(conn, code) {
+  constructor(conn, code, label) {
     this.conn = conn;
     this.code = code;
+    this.label = label || '';
     this.out = new Map();   // исходящие файлы
     this.inc = new Map();   // входящие файлы
     this.cur = null;        // файл, который сейчас принимается
@@ -415,7 +455,8 @@ class Link {
       </div>
       <div class="notice" hidden></div>
       <div class="list"></div>`;
-    $('b', card).textContent = this.code;
+    if (this.label) $('.peer-title', card).textContent = this.label;
+    else $('b', card).textContent = this.code;
     this.card = card;
     this.badge = $('.badge', card);
     this.drop = $('.drop', card);
@@ -462,7 +503,7 @@ class Link {
   }
 
   addReconnect() {
-    if (this.reconnectBtn) return;
+    if (this.reconnectBtn || this.label) return;
     const b = el('button', 'small', 'Подключиться снова');
     b.addEventListener('click', () => { const c = this.code; this.destroy(); connectTo(c); });
     $('.peer-head > div:last-child', this.card).prepend(b);
@@ -852,9 +893,37 @@ let peer = null;
 let myCode = '';
 let peerOpen = false;
 let pendingJoin = '';
+let sigFails = 0;
+let sigTimer = null;
+
+// Сервер сигналов недоступен: повторяем с нарастающей паузой и подсказываем ручной режим
+let lastSig = 0;
+function sigProblem() {
+  if (Date.now() - lastSig < 800) return; // 'disconnected' и 'error' приходят почти одновременно
+  lastSig = Date.now();
+  sigFails++;
+  if (sigFails >= 2) {
+    setStatus('err', 'Сервер сигналов недоступен из вашей сети, подключение по ссылке не сработает. Используйте «Подключение без сервера» ниже.');
+    $('#manual').open = true;
+  } else {
+    setStatus('', 'Связь с сервером потеряна, переподключаюсь…');
+  }
+  clearTimeout(sigTimer);
+  sigTimer = setTimeout(() => {
+    if (peerOpen) return;
+    const c = myCode;
+    try { if (peer) peer.destroy(); } catch (_) {}
+    startPeer(c);
+  }, Math.min(30000, 1500 * sigFails * sigFails));
+}
+
+function iceServers() {
+  // ?noice=1 отключает STUN (нужно только для тестов)
+  return new URLSearchParams(location.search).get('noice') ? [] : ICE_SERVERS;
+}
 
 function iceOptions() {
-  const opts = { debug: 0, config: { iceServers: ICE_SERVERS } };
+  const opts = { debug: 0, config: { iceServers: iceServers() } };
   // Свой сигнальный сервер: ?ph=host&pp=9000&pa=/&ps=0
   const q = new URLSearchParams(location.search);
   if (q.get('ph')) {
@@ -887,12 +956,14 @@ function renderMe() {
 function startPeer(code) {
   myCode = code;
   peerOpen = false;
-  setStatus('', 'Подключаюсь к серверу…');
+  if (!sigFails) setStatus('', 'Подключаюсь к серверу…');
   renderMe();
   peer = new Peer(ID_PREFIX + code, iceOptions());
 
   peer.on('open', () => {
     peerOpen = true;
+    sigFails = 0;
+    clearTimeout(sigTimer);
     saveCode(myCode);
     setStatus('ok', 'Онлайн: друзья могут подключаться по вашей ссылке');
     if (pendingJoin) { const c = pendingJoin; pendingJoin = ''; connectTo(c); }
@@ -906,8 +977,7 @@ function startPeer(code) {
 
   peer.on('disconnected', () => {
     peerOpen = false;
-    setStatus('', 'Связь с сервером потеряна, переподключаюсь…');
-    setTimeout(() => { if (peer && !peer.destroyed && peer.disconnected) peer.reconnect(); }, 1500);
+    sigProblem();
   });
 
   peer.on('error', (err) => {
@@ -931,10 +1001,7 @@ function startPeer(code) {
       case 'server-error':
       case 'socket-error':
       case 'socket-closed':
-        if (!peerOpen) {
-          setStatus('err', 'Нет связи с сервером. Пробую снова…');
-          setTimeout(() => { if (peer && !peer.destroyed && !peerOpen) { const c = myCode; peer.destroy(); startPeer(c); } }, 4000);
-        }
+        if (!peerOpen) sigProblem();
         break;
       default:
         break;
@@ -942,10 +1009,10 @@ function startPeer(code) {
   });
 }
 
-function addLink(conn, code) {
+function addLink(conn, code, label) {
   const old = links.get(code);
   if (old) old.destroy();
-  const l = new Link(conn, code);
+  const l = new Link(conn, code, label);
   links.set(code, l);
   showMsg('');
   return l;
@@ -960,6 +1027,226 @@ function connectTo(code) {
   showMsg('');
   const conn = peer.connect(ID_PREFIX + code, { serialization: 'raw', reliable: true });
   addLink(conn, code);
+}
+
+/* ================= Подключение без сервера (обмен кодами) ================= */
+
+// Обёртка над RTCDataChannel с тем же интерфейсом, что у соединения PeerJS,
+// чтобы весь остальной код (класс Link) работал без изменений.
+class RawConn {
+  constructor(pc, dc) {
+    this.peerConnection = pc;
+    this.dataChannel = dc;
+    this.handlers = {};
+    this.closedEmitted = false;
+    dc.binaryType = 'arraybuffer';
+    dc.onmessage = (e) => this.emit('data', e.data);
+    dc.onclose = () => this.emitClose();
+    dc.onerror = (e) => this.emit('error', e);
+    pc.addEventListener('connectionstatechange', () => {
+      if (pc.connectionState === 'failed' || pc.connectionState === 'closed') this.emitClose();
+    });
+    setTimeout(() => this.emit('open'), 0);
+  }
+  on(ev, cb) { (this.handlers[ev] = this.handlers[ev] || []).push(cb); }
+  emit(ev, arg) { (this.handlers[ev] || []).forEach((f) => f(arg)); }
+  emitClose() { if (!this.closedEmitted) { this.closedEmitted = true; this.emit('close'); } }
+  send(d) { this.dataChannel.send(d); }
+  close() {
+    try { this.dataChannel.close(); } catch (_) {}
+    try { this.peerConnection.close(); } catch (_) {}
+    this.emitClose();
+  }
+}
+
+const b64u = {
+  enc(bytes) {
+    let s = '';
+    for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+    return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  },
+  dec(str) {
+    str = str.replace(/-/g, '+').replace(/_/g, '/');
+    while (str.length % 4) str += '=';
+    const s = atob(str);
+    const a = new Uint8Array(s.length);
+    for (let i = 0; i < s.length; i++) a[i] = s.charCodeAt(i);
+    return a;
+  },
+};
+async function streamBytes(stream, bytes) {
+  const w = stream.writable.getWriter();
+  w.write(bytes);
+  w.close();
+  return new Uint8Array(await new Response(stream.readable).arrayBuffer());
+}
+async function packSdp(kind, sdp) {
+  const raw = new TextEncoder().encode(sdp);
+  let tag = 'p', body = raw;
+  if (typeof CompressionStream === 'function') {
+    try { body = await streamBytes(new CompressionStream('deflate-raw'), raw); tag = 'z'; }
+    catch (_) { body = raw; tag = 'p'; }
+  }
+  return (kind === 'offer' ? 'SFO1.' : 'SFA1.') + tag + b64u.enc(body);
+}
+async function unpackSdp(text) {
+  const m = /(SF[OA]1)\.([zp])([A-Za-z0-9_-]+)/.exec(String(text || ''));
+  if (!m) throw new Error('Код не распознан. Скопируйте его целиком.');
+  let raw;
+  try {
+    raw = b64u.dec(m[3]);
+    if (m[2] === 'z') {
+      if (typeof DecompressionStream !== 'function') throw new Error('Этот браузер не поддерживает такой код. Обновите браузер.');
+      raw = await streamBytes(new DecompressionStream('deflate-raw'), raw);
+    }
+  } catch (e) {
+    if (/браузер/.test(e.message)) throw e;
+    throw new Error('Код повреждён. Скопируйте его целиком, без пробелов и переносов.');
+  }
+  return { kind: m[1] === 'SFO1' ? 'offer' : 'answer', sdp: new TextDecoder().decode(raw) };
+}
+function waitGather(pc, ms) {
+  return new Promise((res) => {
+    if (pc.iceGatheringState === 'complete') return res();
+    const done = () => { clearTimeout(t); pc.removeEventListener('icegatheringstatechange', chk); res(); };
+    const chk = () => { if (pc.iceGatheringState === 'complete') done(); };
+    const t = setTimeout(done, ms);
+    pc.addEventListener('icegatheringstatechange', chk);
+  });
+}
+
+let manual = null;   // { pc, dc, role }
+let manualN = 0;
+
+function manualStatus(text, isErr) {
+  const n = $('#manualStatus');
+  n.textContent = text || '';
+  n.hidden = !text;
+  n.style.color = isErr ? 'var(--err)' : '';
+}
+function resetManual() {
+  if (manual) {
+    try { manual.pc.close(); } catch (_) {}
+    manual = null;
+  }
+}
+function manualPeer(role) {
+  resetManual();
+  const pc = new RTCPeerConnection({ iceServers: iceServers() });
+  manual = { pc, dc: null, role };
+  const m = manual;
+  const opened = (dc) => {
+    if (manual !== m) return;
+    const conn = new RawConn(pc, dc);
+    manual = null;
+    manualN++;
+    addLink(conn, 'M' + manualN, 'Прямое подключение ' + manualN);
+    manualStatus('Соединено. Можно передавать файлы.');
+    $('#offerBox').hidden = true;
+    $('#answerBox').hidden = true;
+    $('#pasteCode').value = '';
+  };
+  const watch = (dc) => {
+    m.dc = dc;
+    dc.binaryType = 'arraybuffer';
+    if (dc.readyState === 'open') opened(dc);
+    else dc.addEventListener('open', () => opened(dc));
+  };
+  pc.addEventListener('connectionstatechange', () => {
+    if (manual === m && pc.connectionState === 'failed') {
+      manualStatus('Не удалось установить прямое соединение. Если вы в разных сетях, возможно, недоступен STUN-сервер (см. README). Попробуйте ещё раз или подключитесь из одной сети Wi-Fi.', true);
+    }
+  });
+  if (role === 'offer') watch(pc.createDataChannel('data'));
+  else pc.addEventListener('datachannel', (e) => watch(e.channel));
+  return pc;
+}
+function noStunHint(sdp) {
+  return /typ srflx/.test(sdp) ? '' : ' Внимание: внешний адрес получить не удалось (STUN недоступен), поэтому соединение возможно только внутри одной сети.';
+}
+
+async function manualCreateOffer() {
+  const btn = $('#mkOffer');
+  btn.disabled = true;
+  manualStatus('Готовлю приглашение…');
+  try {
+    const pc = manualPeer('offer');
+    await pc.setLocalDescription(await pc.createOffer());
+    await waitGather(pc, 6000);
+    const sdp = pc.localDescription.sdp;
+    const code = await packSdp('offer', sdp);
+    $('#offerCode').value = location.origin + location.pathname + '#' + code;
+    $('#offerBox').hidden = false;
+    manualStatus('Приглашение готово. Отправьте его другу, затем вставьте ответ в шаге 2.' + noStunHint(sdp));
+  } catch (e) {
+    manualStatus('Ошибка: ' + (e.message || e), true);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function manualApply(text) {
+  const btn = $('#applyCode');
+  btn.disabled = true;
+  try {
+    const { kind, sdp } = await unpackSdp(text);
+    if (kind === 'offer') {
+      manualStatus('Создаю ответ…');
+      const pc = manualPeer('answer');
+      await pc.setRemoteDescription({ type: 'offer', sdp });
+      await pc.setLocalDescription(await pc.createAnswer());
+      await waitGather(pc, 6000);
+      const mine = pc.localDescription.sdp;
+      $('#answerCode').value = await packSdp('answer', mine);
+      $('#answerBox').hidden = false;
+      manualStatus('Ответ готов. Отправьте его тому, кто прислал приглашение. Как только он его применит, соединение установится.' + noStunHint(mine));
+    } else {
+      if (!manual || manual.role !== 'offer' || manual.pc.signalingState !== 'have-local-offer') {
+        throw new Error('Сначала создайте приглашение в шаге 1 (и не обновляйте страницу), затем вставляйте ответ.');
+      }
+      manualStatus('Соединяюсь…');
+      await manual.pc.setRemoteDescription({ type: 'answer', sdp });
+    }
+  } catch (e) {
+    manualStatus('Ошибка: ' + (e.message || e), true);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function copyText(text, btn, label) {
+  try { await navigator.clipboard.writeText(text); }
+  catch (_) {
+    const ta = el('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+  }
+  if (btn) { const o = btn.textContent; btn.textContent = 'Скопировано'; setTimeout(() => { btn.textContent = o; }, 1500); }
+}
+
+$('#mkOffer').addEventListener('click', manualCreateOffer);
+$('#applyCode').addEventListener('click', () => manualApply($('#pasteCode').value));
+$('#copyOfferLink').addEventListener('click', (e) => copyText($('#offerCode').value, e.target));
+$('#copyOfferCode').addEventListener('click', (e) => {
+  const v = $('#offerCode').value;
+  const i = v.indexOf('#');
+  copyText(i >= 0 ? v.slice(i + 1) : v, e.target);
+});
+$('#copyAnswer').addEventListener('click', (e) => copyText($('#answerCode').value, e.target));
+
+function manualFromHash() {
+  const h = decodeURIComponent(location.hash.slice(1));
+  if (/^SFO1\./.test(h)) {
+    $('#manual').open = true;
+    $('#pasteCode').value = h;
+    history.replaceState(null, '', location.pathname + location.search);
+    manualApply(h);
+    return true;
+  }
+  return false;
 }
 
 /* ================= Запуск ================= */
@@ -983,13 +1270,15 @@ $('#joinForm').addEventListener('submit', (e) => {
 });
 
 window.addEventListener('hashchange', () => {
+  if (manualFromHash()) return;
   const c = normCode(location.hash);
   if (c && c !== myCode) connectTo(c);
 });
 
 renderModeInfo();
+const openedWithOffer = manualFromHash();
 {
-  const fromHash = normCode(location.hash);
+  const fromHash = openedWithOffer ? '' : normCode(location.hash);
   const mine = loadCode();
   if (fromHash && fromHash !== mine) pendingJoin = fromHash;
   startPeer(mine);
